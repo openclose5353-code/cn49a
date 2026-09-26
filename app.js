@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926c";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926d";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -31,20 +31,20 @@ function renderCountdown() {
   const target = Date.parse(DATA.event.date);
   const p = countdownParts(target, Date.now());
   $("countdown").innerHTML = p.done
-    ? `<div class="lbl">🎉 HÔM NAY LÀ NGÀY VỀ TRƯỜNG!</div><div class="when">Chủ nhật 01/11/2026 · 7h00 · KTX Kinh tế Quốc dân</div>`
+    ? `<div class="lbl">🎉 HÔM NAY LÀ NGÀY VỀ TRƯỜNG!</div><div class="when">📅 Chủ nhật 01/11/2026 · ⏰ 7h00 · 📍 KTX Kinh tế Quốc dân</div>`
     : `<div class="lbl">⏳ CÒN LẠI ĐẾN NGÀY VỀ TRƯỜNG</div>
        <div class="nums"><div><b>${p.days}</b>NGÀY</div><div><b>${String(p.hours).padStart(2, "0")}</b>GIỜ</div><div><b>${String(p.minutes).padStart(2, "0")}</b>PHÚT</div><div><b>${String(p.seconds).padStart(2, "0")}</b>GIÂY</div></div>
-       <div class="when">Chủ nhật 01/11/2026 · 7h00 · KTX Kinh tế Quốc dân</div>`;
+       <div class="when">📅 Chủ nhật 01/11/2026 · ⏰ 7h00 · 📍 KTX Kinh tế Quốc dân</div>`;
 }
 
 function renderRaised() {
   const g = DATA.goal;
   const pct = Math.min(100, (100 * g.raised) / g.minimum);
-  $("raised").innerHTML = `<div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.04em">💰 ĐÃ GÓP (CẬP NHẬT TRỰC TIẾP)</div>
+  $("raised").innerHTML = `<div class="lbl">💰 ĐÃ GÓP · CẬP NHẬT TRỰC TIẾP</div>
     <div class="amt">${formatVnd(g.raised)} <small>/ ${formatVnd(g.minimum)}</small></div>
     <div class="bar"><i style="width:${pct}%"></i></div>
-    <div class="sub"><span>Mục tiêu tối thiểu: ${formatMillions(g.minimum)}</span><span>${Math.floor(pct)}%</span></div>
-    <div class="sub" style="margin-top:4px"><span>Mục tiêu đầy đủ (gồm gameshow, MC, clip, tri ân, học bổng): ${formatMillions(g.full)}</span></div>`;
+    <div class="sub"><span>🎯 Mục tiêu tối thiểu: <b>${formatMillions(g.minimum)}</b></span><span><b>${Math.floor(pct)}%</b></span></div>
+    <div class="sub"><span>🚀 Mục tiêu đầy đủ: <b>${formatMillions(g.full)}</b> · gồm gameshow, MC, clip, tri ân, học bổng</span></div>`;
 }
 
 function renderHeader() {
@@ -53,8 +53,11 @@ function renderHeader() {
   $("mosaic").innerHTML =
     shown.map((p) => `<a class="r ${p.status}" href="#ca-lop" title="${e(p.name)}">${avatar(p)}</a>`).join("") +
     (rest > 0 ? `<a class="more" href="#ca-lop">+${rest}</a>` : "");
-  $("stats").innerHTML = `<div><b>${DATA.stats.paid}</b>đã đóng</div><div><b>${DATA.stats.registered}</b>đã hẹn</div><div><b>${DATA.stats.classSize}</b>cả lớp</div>`;
-  $("bio").innerHTML = `<b>CN49A · ${e(DATA.event.title)} 🎓</b><br>QTKD Công nghiệp &amp; Xây dựng · KTQD 2007–2011<br>💛 1 triệu/bạn — góp thêm để buổi họp mặt hay hơn<br><span class="muted" style="font-size:12px">Viền màu = đã đóng · viền xám = đã hẹn</span>`;
+  $("stats").innerHTML = `<div><b>🏅 ${DATA.stats.paid}</b>đã đóng góp</div><div><b>🙋 ${DATA.stats.registered}</b>đã confirm</div><div><b>👥 ${DATA.stats.classSize}</b>cả lớp</div>`;
+  $("bio").innerHTML = `<div class="bio-title">🎓 CN49A · ${e(DATA.event.title)}</div>
+    <div>🏫 QTKD Công nghiệp &amp; Xây dựng · KTQD 2007–2011</div>
+    <div>💛 1 triệu/bạn · góp thêm để lễ kỷ niệm hoành tráng hơn</div>
+    <div class="muted">🌈 Viền màu = đã đóng góp · ⚪ viền xám = đã confirm</div>`;
 }
 
 function renderHighlights() {

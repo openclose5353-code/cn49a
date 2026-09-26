@@ -136,3 +136,19 @@ img[data-full] { cursor: zoom-in; }
 .lb-prev { left: 10px; top: 50%; transform: translateY(-50%); font-size: 30px; }
 .lb-next { right: 10px; top: 50%; transform: translateY(-50%); font-size: 30px; }
 .lb-prev[hidden], .lb-next[hidden] { display: none; }
+
+/* Thang cỡ chữ thống nhất cho phần đầu trang: tiêu đề 18 · nhãn 12 · số lớn 30 · chữ 14 · chữ phụ 13 */
+.top { font-size: 18px; }
+.cd .lbl, .raised .lbl { font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+.raised .lbl { color: var(--muted); }
+.cd .nums b, .raised .amt { font-size: 30px; font-weight: 900; }
+.raised .amt small { font-size: 13px; }
+.cd .when, .raised .sub, .bio .muted { font-size: 13px; }
+.raised .sub { margin-top: 4px; }
+.raised .sub b { color: #111; }
+.stats b { font-size: 18px; }
+.stats div { font-size: 12px; color: var(--muted); }
+.stats b { color: #111; margin-bottom: 2px; }
+.bio { font-size: 14px; line-height: 1.6; }
+.bio-title { font-weight: 800; font-size: 15px; }
+.btns a { font-size: 13px; }
