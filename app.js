@@ -39,7 +39,7 @@ function renderRaised() {
   $("raised").innerHTML = `<div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.04em">💰 ĐÃ GÓP (CẬP NHẬT TRỰC TIẾP)</div>
     <div class="amt">${formatVnd(g.raised)} <small>/ ${formatVnd(g.minimum)}</small></div>
     <div class="bar"><i style="width:${pct}%"></i></div>
-    <div class="sub"><span>Mục tiêu tối thiểu: ${formatMillions(g.minimum)} (${DATA.stats.classSize} bạn × 1 triệu)</span><span>${Math.floor(pct)}%</span></div>
+    <div class="sub"><span>Mục tiêu tối thiểu: ${formatMillions(g.minimum)}</span><span>${Math.floor(pct)}%</span></div>
     <div class="sub" style="margin-top:4px"><span>Mục tiêu đầy đủ (gồm gameshow, MC, clip, tri ân, học bổng): ${formatMillions(g.full)}</span></div>`;
 }
 
@@ -221,7 +221,7 @@ function sheetLedger(body) {
   body.innerHTML = `
     <div class="sum"><div style="background:#ecfdf3;color:#067647">Đã thu<b>${formatVnd(L.income)}</b></div><div style="background:#fef3f2;color:#b42318">Đã chi<b>${formatVnd(L.expenseTotal)}</b></div><div style="background:#f4f3ff;color:#5925dc">Còn lại<b>${formatVnd(L.balance)}</b></div></div>
     <div class="sec">MỤC TIÊU</div>
-    <div class="row"><div>Tối thiểu<small>${DATA.stats.classSize} bạn × 1.000.000đ</small></div><b>${formatVnd(DATA.goal.minimum)}</b></div>
+    <div class="row"><div>Tối thiểu<small>đủ để tổ chức buổi họp mặt</small></div><b>${formatVnd(DATA.goal.minimum)}</b></div>
     <div class="row"><div>Đầy đủ<small>tối thiểu + các hạng mục góp thêm</small></div><b>${formatVnd(DATA.goal.full)}</b></div>
     <div class="sec">QUỸ SỰ KIỆN (1 TRIỆU/BẠN)</div>
     <div class="row"><div>Đã thu<small>${DATA.stats.paid} bạn × 1.000.000đ</small></div><b>${formatVnd(L.eventFund)}</b></div>
