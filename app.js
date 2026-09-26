@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926c";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -59,7 +59,8 @@ function renderHeader() {
 
 function renderHighlights() {
   const ms = DATA.milestones.map((m) => `<div><div class="c ${m.unlocked ? "on" : ""}">${m.icon}<span class="lock">${m.unlocked ? "🔓" : "🔒"}</span></div>${m.people} bạn<br>${e(m.short ?? m.label)}</div>`);
-  const ld = DATA.ladder.map((s) => `<div><div class="c ${s.state === "done" ? "on" : ""}">${s.icon}<span class="lock">${s.state === "done" ? "✅" : s.state === "active" ? "▶️" : "🔒"}</span></div>${e(s.label)}</div>`);
+  // Chưa đủ tiền thì luôn có khoá 🔒; nấc đang góp có viền nét đứt để biết đang góp vào đâu
+  const ld = DATA.ladder.map((s) => `<div><div class="c ${s.state === "done" ? "on" : s.state === "active" ? "active" : ""}">${s.icon}<span class="lock">${s.state === "done" ? "🔓" : "🔒"}</span></div>${e(s.label)}</div>`);
   $("highlights").innerHTML = [...ms, ...ld].join("");
 }
 
@@ -221,7 +222,7 @@ function sheetProgram(body) {
 
 function sheetLedger(body) {
   const L = DATA.ledger;
-  const stateIcon = { done: "✅", active: "▶️", locked: "🔒" };
+  const stateIcon = { done: "🔓", active: "🔒", locked: "🔒" };
   body.innerHTML = `
     <div class="sum"><div style="background:#ecfdf3;color:#067647">Đã thu<b>${formatVnd(L.income)}</b></div><div style="background:#fef3f2;color:#b42318">Đã chi<b>${formatVnd(L.expenseTotal)}</b></div><div style="background:#f4f3ff;color:#5925dc">Còn lại<b>${formatVnd(L.balance)}</b></div></div>
     <div class="sec">MỤC TIÊU</div>
@@ -230,7 +231,7 @@ function sheetLedger(body) {
     <div class="sec">QUỸ SỰ KIỆN (1 TRIỆU/BẠN)</div>
     <div class="row"><div>Đã thu<small>${DATA.stats.paid} bạn × 1.000.000đ</small></div><b>${formatVnd(L.eventFund)}</b></div>
     <div class="sec">QUỸ GÓP THÊM · THEO THỨ TỰ</div>
-    ${DATA.ladder.map((s) => `<div class="row"><div>${stateIcon[s.state]} ${s.icon} ${e(s.label)}<small>${s.target == null ? `${DATA.scholarship.units} suất · ${formatMillions(s.perUnit)}/suất` : `${formatMillions(s.filled)}/${formatMillions(s.target)}`}</small></div><b>${formatVnd(s.target == null ? DATA.scholarship.total : s.filled)}</b></div>`).join("")}
+    ${DATA.ladder.map((s) => `<div class="row"><div>${stateIcon[s.state]} ${s.icon} ${e(s.label)}${s.state === "active" ? " · đang góp" : ""}<small>${s.target == null ? `${DATA.scholarship.units} suất · ${formatMillions(s.perUnit)}/suất` : `${formatMillions(s.filled)}/${formatMillions(s.target)}`}</small></div><b>${formatVnd(s.target == null ? DATA.scholarship.total : s.filled)}</b></div>`).join("")}
     <div class="sec">ĐÃ CHI</div>
     ${L.expenses.length ? L.expenses.map((x) => `<div class="row"><div>${e(x.label)}<small>${e(x.date)}</small></div><b>−${formatVnd(x.amount)}</b></div>`).join("") : `<p class="note" style="padding-top:10px">${e(L.note)}</p>`}
     <p class="note" style="padding-top:12px">Không hiện số tiền của từng người — chỉ hiện tổng.</p>`;
