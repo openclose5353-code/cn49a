@@ -1,10 +1,19 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload } from "./lib.js";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
 
 const initials = (name) => e(name.trim().split(/\s+/).pop()?.[0] ?? "?");
 const avatar = (p) => (p.avatar ? `<img src="${e(p.avatar)}" alt="" loading="lazy">` : `<span class="ph">${initials(p.name)}</span>`);
+const ringed = (p) => `<span class="r ${p.status}">${avatar(p)}</span>`;
+const badgeHtml = (p) => {
+  const t = tierFor(p, DATA.tiers);
+  return t ? ` <span class="pbadge">${t.icon} ${e(t.name)}</span>` : "";
+};
+const noteHtml = (p) => {
+  const n = statusNote(p);
+  return `<span class="snote ${n.cls}">${e(n.text)}</span>`;
+};
 const timeAgo = (ts) => {
   const m = Math.floor((Date.now() - ts) / 60e3);
   if (m < 1) return "vừa xong";
@@ -31,7 +40,7 @@ function renderRaised() {
     <div class="amt">${formatVnd(g.raised)} <small>/ ${formatVnd(g.minimum)}</small></div>
     <div class="bar"><i style="width:${pct}%"></i></div>
     <div class="sub"><span>Mục tiêu tối thiểu: ${formatMillions(g.minimum)} (${DATA.stats.classSize} bạn × 1 triệu)</span><span>${Math.floor(pct)}%</span></div>
-    <div class="sub" style="margin-top:4px"><span>Mục tiêu đầy đủ (gồm gameshow, MC, clip, tri ân): ${formatMillions(g.full)}</span></div>`;
+    <div class="sub" style="margin-top:4px"><span>Mục tiêu đầy đủ (gồm gameshow, MC, clip, tri ân, học bổng): ${formatMillions(g.full)}</span></div>`;
 }
 
 function renderHeader() {
@@ -70,8 +79,7 @@ function feedItem(f) {
   if (f.type === "joined") {
     const p = people.get(f.personKey);
     if (!p) return "";
-    const tier = p.badge ? ` · ${p.badge}` : "";
-    return `<article class="post"><div class="post-h">${avatar(p)}<div>${e(p.name)}${tier}<small>${p.mssv ? `${e(p.mssv)} · ` : ""}vừa tham gia · ${timeAgo(f.ts)}</small></div></div>
+    return `<article class="post"><div class="post-h">${avatar(p)}<div>${e(p.name)}${badgeHtml(p)}<small>${p.mssv ? `${e(p.mssv)} · ` : ""}vừa tham gia · ${timeAgo(f.ts)}</small></div></div>
       <div class="msg"><div class="big-emoji">${p.badge || "🎉"}</div>${p.message ? `<b>“${e(p.message)}”</b>` : `<b>Đã chốt vé về trường 01/11!</b>`}</div></article>`;
   }
   if (f.type === "milestone")
@@ -128,7 +136,7 @@ function sheetJoin(body) {
     const nq = transferContent("", q).trim().toLowerCase();
     body.querySelector("#who").innerHTML = people
       .filter((p) => !nq || transferContent("", `${p.name} ${p.mssv ?? ""}`).toLowerCase().includes(nq))
-      .map((p) => `<div class="who ${state.person?.key === p.key ? "sel" : ""}" data-k="${e(p.key)}">${avatar(p)}<div>${e(p.name)}<small>${p.mssv ? `${e(p.mssv)} · ` : ""}${p.status === "paid" ? "Đã tham gia ✓" : p.status === "registered" ? "Đã hẹn 01/11 ✓" : "Chưa hẹn"}</small></div>${state.person?.key === p.key ? '<span class="tick">✓</span>' : ""}</div>`)
+      .map((p) => `<div class="who ${state.person?.key === p.key ? "sel" : ""}" data-k="${e(p.key)}">${ringed(p)}<div>${e(p.name)}${badgeHtml(p)}<small>${p.mssv ? `🎓 ${e(p.mssv)}` : ""}</small>${noteHtml(p)}</div>${state.person?.key === p.key ? '<span class="tick">✓</span>' : ""}</div>`)
       .join("");
     body.querySelectorAll(".who").forEach((el) => (el.onclick = () => { state.person = people.find((p) => p.key === el.dataset.k); drawWho(body.querySelector("#q").value); drawPay(); }));
   };
@@ -225,8 +233,9 @@ function sheetLedger(body) {
 }
 
 function sheetClass(body) {
-  const label = { paid: "Đã tham gia ✓", registered: "Đã hẹn 01/11", none: "" };
-  body.innerHTML = DATA.people.map((p) => `<div class="who"><span class="r ${p.status}">${avatar(p)}</span><div>${e(p.name)} ${p.badge}<small>${p.mssv ? `🎓 ${e(p.mssv)} · ` : ""}${label[p.status]}${p.message ? ` · “${e(p.message)}”` : ""}</small></div></div>`).join("");
+  const count = (s) => DATA.people.filter((p) => p.status === s).length;
+  body.innerHTML = `<p class="note" style="padding-top:12px">🏅 ${count("paid")} đã đóng góp · 🙋 ${count("registered")} đã confirm · 😴 ${count("none")} chưa đi</p>` +
+    DATA.people.map((p) => `<div class="who">${ringed(p)}<div>${e(p.name)}${badgeHtml(p)}<small>${p.mssv ? `🎓 ${e(p.mssv)}` : ""}${p.message ? ` · “${e(p.message)}”` : ""}</small>${noteHtml(p)}</div></div>`).join("");
 }
 
 const SHEETS = { "tham-gia": ["Tham gia họp mặt 15 năm", sheetJoin], "chuong-trinh": ["Chương trình ngày 01/11", sheetProgram], "thu-chi": ["Thu – chi công khai", sheetLedger], "ca-lop": ["Cả lớp CN49A", sheetClass] };

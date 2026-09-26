@@ -59,3 +59,22 @@ export function uploadPayload({ person, amount, message, dataUrl }) {
     website: "",
   };
 }
+
+// Tên gọi (chữ cuối của họ tên) — dùng trong lời rủ "Các bạn rủ Linh đi đi".
+export function givenName(name) {
+  return String(name ?? "").trim().split(/\s+/).pop();
+}
+
+// Dòng trạng thái cạnh tên: chưa đi / đã confirm / đã đóng góp.
+export function statusNote(p) {
+  if (p.status === "paid") return { cls: "paid", text: "Đã đóng góp" };
+  if (p.status === "registered") return { cls: "registered", text: "Đã confirm – Xin mời bạn đóng tiền 💸" };
+  return { cls: "none", text: `Chưa đi – Các bạn rủ ${givenName(p.name)} đi đi 🥺👉` };
+}
+
+// Huy hiệu cho người đã đóng: theo mức đóng góp; mức 1 triệu dùng 🏅.
+export function tierFor(p, tiers) {
+  if (p.status !== "paid") return null;
+  const t = tiers.find((x) => x.badge === p.badge) ?? tiers[0];
+  return { icon: t.badge || "🏅", name: t.name };
+}
