@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926f";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack } from "./lib.js?v=20260926g";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -58,6 +58,38 @@ function renderHeader() {
     <div>🏫 QTKD Công nghiệp &amp; Xây dựng · KTQD 2007–2011</div>
     <div>💛 1 triệu/bạn · góp thêm để lễ kỷ niệm hoành tráng hơn</div>
     <div class="muted">🌈 Viền màu = đã đóng góp · ⚪ viền xám = đã confirm</div>`;
+}
+
+function renderUnlock() {
+  const S = DATA.stats;
+  const t = milestoneTrack({ paid: S.paid, registered: S.registered, classSize: S.classSize, milestones: DATA.milestones });
+  const l = ladderTrack(DATA.ladder);
+  const sch = DATA.scholarship;
+  $("unlock").innerHTML = `
+    <div class="lbl">🎁 MỞ KHOÁ QUÀ CHO CẢ LỚP</div>
+    <div class="trk">
+      <div class="trk-h">① Càng nhiều bạn đóng góp, cả lớp càng nhiều quà</div>
+      <div class="trk-line">Đã có <b>${S.paid}/${S.classSize}</b> bạn đóng góp <span class="muted">· ${S.registered} bạn đã confirm</span></div>
+      <div class="rail">
+        <div class="ghost" style="width:${t.ghostPct}%"></div>
+        <div class="fill" style="width:${t.fillPct}%"></div>
+        ${t.markers.map((m) => `<div class="mk ${m.unlocked ? "on" : ""}" style="left:${m.pct}%"><span>${m.icon}</span><em>${m.people}</em></div>`).join("")}
+      </div>
+      <div class="rail-legend"><span><i class="dot fill"></i>đã đóng góp</span><span><i class="dot ghost"></i>đã confirm</span></div>
+      <div class="next">👉 ${e(t.headline)}</div>
+      <ul class="ms-list">${t.markers.map((m) => `<li class="${m.unlocked ? "done" : ""}"><span class="ico">${m.unlocked ? "✅" : "🔒"}</span><div><b>${m.icon} Đủ ${m.people} bạn</b> → ${e(m.label)}<small>${m.unlocked ? "Đã mở khoá 🎉" : `Còn thiếu ${m.remaining} bạn`}</small></div></li>`).join("")}</ul>
+    </div>
+    <div class="trk">
+      <div class="trk-h">② Góp thêm (phần trên 1 triệu/bạn) sẽ mở khoá lần lượt</div>
+      <div class="trk-line">Quỹ góp thêm: <b>${formatVnd(l.raised)}</b> <span class="muted">/ ${formatMillions(l.total)}</span></div>
+      <div class="rail money">
+        <div class="fill" style="width:${Math.min(100, (100 * l.raised) / (l.total || 1))}%"></div>
+        ${l.steps.map((s) => `<div class="tick" style="left:${s.endPct}%"></div>`).join("")}
+      </div>
+      <div class="next">👉 ${e(l.headline)}</div>
+      <ul class="ms-list">${l.steps.map((s) => `<li class="${s.state}"><span class="ico">${s.state === "done" ? "✅" : s.state === "active" ? "⏳" : "🔒"}</span><div><b>${s.icon} ${e(s.label)}</b><small>${s.status} · ${formatMillions(s.filled)} / ${formatMillions(s.goal)}${s.target == null ? ` · ${sch.units} suất` : ""}</small><div class="mini"><i style="width:${Math.min(100, (100 * s.filled) / (s.goal || 1))}%"></i></div></div></li>`).join("")}</ul>
+      <p class="pledge">🎓 ${sch.pledgeUnlocked ? `${e(sch.pledgeName)} đã góp thêm ${formatMillions(sch.pledgeAmount)} cho học bổng ✅` : `Khi đủ 40 bạn đóng góp, ${e(sch.pledgeName)} góp thêm <b>${formatMillions(sch.pledgeAmount)}</b> cho học bổng`}</p>
+    </div>`;
 }
 
 function renderHighlights() {
@@ -306,8 +338,7 @@ async function main() {
   setInterval(renderCountdown, 1000);
   renderRaised();
   renderHeader();
-  renderHighlights();
-  renderFund();
+  renderUnlock();
   renderFeed();
   renderGallery();
   $("updated").textContent = new Date(DATA.generatedAt).toLocaleString("vi-VN");

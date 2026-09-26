@@ -78,3 +78,40 @@ export function tierFor(p, tiers) {
   const t = tiers.find((x) => x.badge === p.badge) ?? tiers[0];
   return { icon: t.badge || "🏅", name: t.name };
 }
+
+// Thanh trượt số người: vị trí các mốc trên thang 0 → sĩ số, phần đã đóng góp / đã confirm, mốc kế tiếp.
+export function milestoneTrack({ paid, registered, classSize, milestones }) {
+  const pct = (n) => (Math.min(n, classSize) / classSize) * 100;
+  const markers = milestones.map((m) => ({
+    ...m,
+    pct: pct(m.people),
+    remaining: Math.max(0, m.people - paid),
+    unlocked: m.unlocked || paid >= m.people,
+  }));
+  const next = markers.find((m) => m.remaining > 0) ?? null;
+  return {
+    fillPct: pct(paid),
+    ghostPct: pct(registered),
+    markers,
+    next,
+    headline: next ? `Còn ${next.remaining} bạn nữa là mở khoá ${next.icon} ${next.label}!` : "🎉 Đã mở khoá tất cả quà cho cả lớp!",
+  };
+}
+
+// Thanh quỹ góp thêm: các nấc cộng dồn trên thang 0 → tổng mục tiêu, trạng thái từng nấc, câu kế tiếp.
+export function ladderTrack(ladder) {
+  const STATUS = { done: "Đã mở", active: "Đang góp", locked: "Chưa tới" };
+  const total = ladder.reduce((s, x) => s + (x.target ?? x.goalTarget ?? 0), 0);
+  let cum = 0;
+  const steps = ladder.map((x) => {
+    const goal = x.target ?? x.goalTarget ?? 0;
+    cum += goal;
+    return { ...x, goal, endPct: total ? (cum / total) * 100 : 0, status: STATUS[x.state] };
+  });
+  const raised = ladder.reduce((s, x) => s + x.filled, 0);
+  const a = ladder.find((x) => x.state === "active");
+  let headline = "🎉 Đã mở khoá tất cả hạng mục!";
+  if (a && a.target != null) headline = `Còn ${formatMillions(a.target - a.filled)} nữa là mở khoá ${a.icon} ${a.label}!`;
+  else if (a) headline = `Đang góp cho ${a.icon} ${a.label}: đã có ${formatMillions(a.filled)}.`;
+  return { total, raised, steps, headline };
+}
