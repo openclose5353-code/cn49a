@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926d";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926e";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
