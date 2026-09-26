@@ -4,7 +4,11 @@ const $ = (id) => document.getElementById(id);
 let DATA;
 
 const initials = (name) => e(name.trim().split(/\s+/).pop()?.[0] ?? "?");
-const avatar = (p) => (p.avatar ? `<img src="${e(p.avatar)}" alt="" loading="lazy">` : `<span class="ph">${initials(p.name)}</span>`);
+const avatar = (p) =>
+  p.avatar
+    ? `<img src="${e(p.avatar)}" data-full="${e(p.avatarFull ?? p.avatar)}" data-cap="${e(p.name)}"${p.status === "none" ? ' data-blur="1"' : ""} alt="" loading="lazy">`
+    : `<span class="ph">${initials(p.name)}</span>`;
+const photo = (src, cap) => `<img src="${e(src)}" data-full="${e(src)}" data-cap="${e(cap ?? "")}" alt="" loading="lazy">`;
 const ringed = (p) => `<span class="r ${p.status}">${avatar(p)}</span>`;
 const badgeHtml = (p) => {
   const t = tierFor(p, DATA.tiers);
@@ -88,7 +92,7 @@ function feedItem(f) {
     return `<article class="post"><div class="post-h"><span class="ph">📌</span><div>${e(f.by ?? "Ban liên lạc")}<small>thông báo · ${timeAgo(f.ts)}</small></div></div><div class="ptxt" style="white-space:pre-line">${e(f.text)}</div></article>`;
   if (f.type === "photos")
     return `<article class="post"><div class="post-h"><span class="ph">📷</span><div>${e(f.by ?? "Drive của lớp")}<small>đã thêm ${f.count} ảnh · ${timeAgo(f.ts)}</small></div></div>
-      <div class="pics ${f.srcs.length === 1 ? "one" : ""}">${f.srcs.map((s) => `<img src="${e(s)}" alt="" loading="lazy">`).join("")}</div></article>`;
+      <div class="pics ${f.srcs.length === 1 ? "one" : ""}" data-group>${f.srcs.map((s) => photo(s, f.by ?? "Drive của lớp")).join("")}</div></article>`;
   if (f.type === "video")
     return `<article class="post"><div class="post-h"><span class="ph">🎬</span><div>Clip của lớp<small>${e(f.title)}</small></div></div>
       <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(f.youtubeId)}" loading="lazy" allowfullscreen title="${e(f.title)}"></iframe></div></article>`;
@@ -103,7 +107,7 @@ function renderGallery(era = "all") {
   const imgs = DATA.gallery.filter((g) => era === "all" || g.era === era);
   const tab = (k, label) => `<button data-era="${k}" class="${era === k ? "on" : ""}">${label}</button>`;
   $("gallery").innerHTML = `<div class="tabs">${tab("all", "▦ Tất cả")}${tab("then", "Ngày ấy")}${tab("now", "Bây giờ")}</div>
-    <div class="grid3">${imgs.map((g) => `<img src="${e(g.src)}" alt="" loading="lazy">`).join("")}</div>`;
+    <div class="grid3" data-group>${imgs.map((g) => photo(g.src, g.by ?? "Drive của lớp")).join("")}</div>`;
   $("gallery").querySelectorAll("button").forEach((b) => (b.onclick = () => renderGallery(b.dataset.era)));
 }
 
@@ -249,6 +253,47 @@ function route() {
   $("sheet").scrollTop = 0;
   s[1]($("sheet-body"));
 }
+
+// ---------- Phóng to ảnh (bấm vào bất kỳ ảnh nào, kể cả ảnh đại diện) ----------
+function openLightbox(img) {
+  const group = img.closest("[data-group], .mosaic, .list, #sheet-body") ?? document;
+  const imgs = [...group.querySelectorAll("img[data-full]")];
+  let i = Math.max(0, imgs.indexOf(img));
+  const box = document.createElement("div");
+  box.className = "lightbox";
+  box.innerHTML = `<button class="lb-x" aria-label="Đóng">✕</button><button class="lb-prev" aria-label="Ảnh trước">‹</button><img alt=""><button class="lb-next" aria-label="Ảnh sau">›</button><div class="lb-cap"></div>`;
+  const show = () => {
+    const cur = imgs[i];
+    const big = box.querySelector("img");
+    big.src = cur.dataset.full;
+    big.classList.toggle("blur", cur.dataset.blur === "1");
+    box.querySelector(".lb-cap").textContent = cur.dataset.cap ?? "";
+    box.querySelector(".lb-prev").hidden = box.querySelector(".lb-next").hidden = imgs.length < 2;
+  };
+  const close = () => { box.remove(); document.removeEventListener("keydown", onKey); };
+  const step = (d) => { i = (i + d + imgs.length) % imgs.length; show(); };
+  const onKey = (ev) => { if (ev.key === "Escape") close(); if (ev.key === "ArrowLeft") step(-1); if (ev.key === "ArrowRight") step(1); };
+  box.onclick = (ev) => {
+    if (ev.target.classList.contains("lb-prev")) return step(-1);
+    if (ev.target.classList.contains("lb-next")) return step(1);
+    if (ev.target.tagName !== "IMG") close();
+  };
+  let x0 = null;
+  box.addEventListener("touchstart", (ev) => { x0 = ev.touches[0].clientX; }, { passive: true });
+  box.addEventListener("touchend", (ev) => { if (x0 === null) return; const dx = ev.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50 && imgs.length > 1) step(dx < 0 ? 1 : -1); x0 = null; });
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(box);
+  show();
+}
+
+// Bắt ở pha capture để thắng cả link (cụm ảnh) và nút chọn tên
+document.addEventListener("click", (ev) => {
+  const img = ev.target.closest?.("img[data-full]");
+  if (!img || img.closest(".lightbox")) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  openLightbox(img);
+}, true);
 
 async function main() {
   const res = await fetch(`data.json?t=${Date.now()}`);
