@@ -71,7 +71,7 @@ function feedItem(f) {
     const p = people.get(f.personKey);
     if (!p) return "";
     const tier = p.badge ? ` · ${p.badge}` : "";
-    return `<article class="post"><div class="post-h">${avatar(p)}<div>${e(p.name)}${tier}<small>vừa tham gia · ${timeAgo(f.ts)}</small></div></div>
+    return `<article class="post"><div class="post-h">${avatar(p)}<div>${e(p.name)}${tier}<small>${p.mssv ? `${e(p.mssv)} · ` : ""}vừa tham gia · ${timeAgo(f.ts)}</small></div></div>
       <div class="msg"><div class="big-emoji">${p.badge || "🎉"}</div>${p.message ? `<b>“${e(p.message)}”</b>` : `<b>Đã chốt vé về trường 01/11!</b>`}</div></article>`;
   }
   if (f.type === "milestone")
@@ -106,7 +106,7 @@ function sheetJoin(body) {
   const people = [...DATA.people].sort((a, b) => (a.status === "registered" ? -1 : 0) - (b.status === "registered" ? -1 : 0));
   body.innerHTML = `
     <div class="step">BƯỚC 1 · BẠN LÀ AI?</div>
-    <input class="search" id="q" placeholder="🔍 Gõ tên của bạn…" autocomplete="off">
+    <input class="search" id="q" placeholder="🔍 Gõ tên hoặc mã sinh viên…" autocomplete="off">
     <div class="list" id="who"></div>
     <div class="step">BƯỚC 2 · CHỌN MỨC</div>
     <div class="chips" id="chips">${tiers.map((t) => `<button data-a="${t.amount}">${formatMillions(t.amount)}<small>${t.badge} ${e(t.name)}</small></button>`).join("")}<button data-a="other">Khác…<small>&nbsp;</small></button></div>
@@ -127,8 +127,8 @@ function sheetJoin(body) {
   const drawWho = (q = "") => {
     const nq = transferContent("", q).trim().toLowerCase();
     body.querySelector("#who").innerHTML = people
-      .filter((p) => !nq || transferContent("", p.name).toLowerCase().includes(nq))
-      .map((p) => `<div class="who ${state.person?.key === p.key ? "sel" : ""}" data-k="${e(p.key)}">${avatar(p)}<div>${e(p.name)}<small>${p.status === "paid" ? "Đã tham gia ✓" : p.status === "registered" ? "Đã hẹn 01/11 ✓" : "&nbsp;"}</small></div>${state.person?.key === p.key ? '<span class="tick">✓</span>' : ""}</div>`)
+      .filter((p) => !nq || transferContent("", `${p.name} ${p.mssv ?? ""}`).toLowerCase().includes(nq))
+      .map((p) => `<div class="who ${state.person?.key === p.key ? "sel" : ""}" data-k="${e(p.key)}">${avatar(p)}<div>${e(p.name)}<small>${p.mssv ? `${e(p.mssv)} · ` : ""}${p.status === "paid" ? "Đã tham gia ✓" : p.status === "registered" ? "Đã hẹn 01/11 ✓" : "Chưa hẹn"}</small></div>${state.person?.key === p.key ? '<span class="tick">✓</span>' : ""}</div>`)
       .join("");
     body.querySelectorAll(".who").forEach((el) => (el.onclick = () => { state.person = people.find((p) => p.key === el.dataset.k); drawWho(body.querySelector("#q").value); drawPay(); }));
   };
@@ -226,7 +226,7 @@ function sheetLedger(body) {
 
 function sheetClass(body) {
   const label = { paid: "Đã tham gia ✓", registered: "Đã hẹn 01/11", none: "" };
-  body.innerHTML = DATA.people.map((p) => `<div class="who"><span class="r ${p.status}">${avatar(p)}</span><div>${e(p.name)} ${p.badge}<small>${label[p.status]}${p.message ? ` · “${e(p.message)}”` : ""}</small></div></div>`).join("");
+  body.innerHTML = DATA.people.map((p) => `<div class="who"><span class="r ${p.status}">${avatar(p)}</span><div>${e(p.name)} ${p.badge}<small>${p.mssv ? `🎓 ${e(p.mssv)} · ` : ""}${label[p.status]}${p.message ? ` · “${e(p.message)}”` : ""}</small></div></div>`).join("");
 }
 
 const SHEETS = { "tham-gia": ["Tham gia họp mặt 15 năm", sheetJoin], "chuong-trinh": ["Chương trình ngày 01/11", sheetProgram], "thu-chi": ["Thu – chi công khai", sheetLedger], "ca-lop": ["Cả lớp CN49A", sheetClass] };
