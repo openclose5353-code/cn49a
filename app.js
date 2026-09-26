@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack } from "./lib.js?v=20260926g";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack } from "./lib.js?v=20260926h";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -52,7 +52,7 @@ function renderHeader() {
   const rest = DATA.people.length - shown.length;
   $("mosaic").innerHTML =
     shown.map((p) => `<a class="r ${p.status}" href="#ca-lop" title="${e(p.name)}">${avatar(p)}</a>`).join("") +
-    (rest > 0 ? `<a class="more" href="#ca-lop">+${rest}</a>` : "");
+    (rest > 0 ? `<a class="more" href="#ca-lop" title="Xem cả lớp">+${rest}</a>` : "");
   $("stats").innerHTML = `<div><b>🏅 ${DATA.stats.paid}</b>đã đóng góp</div><div><b>🙋 ${DATA.stats.registered}</b>đã confirm</div><div><b>👥 ${DATA.stats.classSize}</b>cả lớp</div>`;
   $("bio").innerHTML = `<div class="bio-title">🎓 CN49A · ${e(DATA.event.title)}</div>
     <div>🏫 QTKD Công nghiệp &amp; Xây dựng · KTQD 2007–2011</div>

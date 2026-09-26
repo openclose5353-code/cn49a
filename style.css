@@ -207,3 +207,11 @@ img[data-full] { cursor: zoom-in; }
 .ms-list .mini { height: 6px; background: #f1f1f1; border-radius: 9px; margin-top: 5px; overflow: hidden; }
 .ms-list .mini i { display: block; height: 100%; background: var(--grad); }
 .pledge { font-size: 13px; margin: 10px 0 0; color: #555; }
+
+/* Nút "+N" (xem cả lớp): viền gradient sáng, nhịp phát sáng để mọi người bấm vào */
+.more { position: relative; width: 42px; height: 42px; border-radius: 50%; color: var(--pink); font-weight: 900; font-size: 12px;
+  background: linear-gradient(#fff, #fff) padding-box, var(--ring) border-box; border: 3px solid transparent;
+  box-shadow: 0 0 0 0 rgba(214, 41, 118, .45); animation: morePulse 1.8s ease-out infinite; }
+.more:active { transform: scale(.94); }
+@keyframes morePulse { 0% { box-shadow: 0 0 0 0 rgba(214, 41, 118, .45); } 70% { box-shadow: 0 0 0 9px rgba(214, 41, 118, 0); } 100% { box-shadow: 0 0 0 0 rgba(214, 41, 118, 0); } }
+@media (prefers-reduced-motion: reduce) { .more { animation: none; } }
