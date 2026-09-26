@@ -115,3 +115,13 @@ export function ladderTrack(ladder) {
   else if (a) headline = `Đang góp cho ${a.icon} ${a.label}: đã có ${formatMillions(a.filled)}.`;
   return { total, raised, steps, headline };
 }
+
+// Lời chúc mừng sau khi tải ảnh lên web, hoặc trước khi mở nhóm Zalo để gửi ảnh.
+export function thankYou(person, amount, via) {
+  const name = givenName(person.name);
+  const bye = "Hẹn gặp lại bạn ở buổi họp lớp Chủ nhật 01/11 nhé! 🥂";
+  if (via === "upload") {
+    return { title: `🎉 Cảm ơn ${name}!`, lines: [`Đã nhận ảnh chuyển khoản ${formatMillions(amount)} của bạn.`, "Vài phút nữa ảnh của bạn trên trang sẽ đổi sang viền màu 🌈", bye] };
+  }
+  return { title: `🎉 Tuyệt vời, ${name}!`, lines: ["Bước cuối: gửi ảnh chụp chuyển khoản vào nhóm Zalo CN49A.", "Vài phút sau ảnh của bạn trên trang sẽ đổi sang viền màu 🌈", bye] };
+}

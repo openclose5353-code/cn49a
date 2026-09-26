@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack } from "./lib.js?v=20260926h";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou } from "./lib.js?v=20260926i";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -169,7 +169,7 @@ function sheetJoin(body) {
     <label class="cta grad" style="cursor:pointer">⬆️ Tải ảnh chụp lên đây<input type="file" id="file" accept="image/*" hidden></label>
     <p class="note" id="upl" aria-live="polite"></p>
     <div class="or">— hoặc —</div>` : ""}
-    ${DATA.zaloGroupUrl ? `<a class="cta zalo" href="${e(DATA.zaloGroupUrl)}">📸 Gửi ảnh chụp vào nhóm Zalo</a>` : `<div class="cta zalo">📸 Gửi ảnh chụp vào nhóm Zalo CN49A</div>`}
+    <button type="button" class="cta zalo" id="zalo-btn">📸 Gửi ảnh chụp vào nhóm Zalo</button>
     <p class="note">Ảnh chụp chuyển khoản không bao giờ được đăng lên trang.</p>`;
 
   const drawWho = (q = "") => {
@@ -211,10 +211,15 @@ function sheetJoin(body) {
       const payload = uploadPayload({ person: state.person, amount: state.amount, message: body.querySelector("#msg").value, dataUrl });
       const res = await fetch(DATA.uploadUrl, { method: "POST", body: JSON.stringify(payload) });
       const out = await res.json();
-      status.textContent = out.ok ? `✅ Đã nhận ảnh của ${state.person.name}. Cảm ơn bạn! Trang sẽ cập nhật trong vài phút.` : `⚠️ ${out.error ?? "Không tải lên được, hãy thử lại."}`;
+      status.textContent = out.ok ? `✅ Đã nhận ảnh của ${state.person.name}.` : `⚠️ ${out.error ?? "Không tải lên được, hãy thử lại."}`;
+      if (out.ok) celebrate(thankYou(state.person, state.amount, "upload"));
     } catch {
       status.textContent = "⚠️ Không tải lên được. Hãy thử lại, hoặc gửi ảnh vào nhóm Zalo.";
     }
+  };
+  body.querySelector("#zalo-btn").onclick = () => {
+    if (!state.person) { body.querySelector("#q").focus(); body.querySelector("#q").placeholder = "⚠️ Chọn tên của bạn trước nhé…"; return; }
+    celebrate(thankYou(state.person, state.amount, "zalo"), DATA.zaloGroupUrl ? { href: DATA.zaloGroupUrl, label: "📸 Mở nhóm Zalo để gửi ảnh" } : null);
   };
   body.querySelector("#q").oninput = (ev) => drawWho(ev.target.value);
   body.querySelectorAll("#chips button").forEach((b) => (b.onclick = () => {
@@ -288,6 +293,28 @@ function route() {
   $("sheet-title").textContent = s[0];
   $("sheet").scrollTop = 0;
   s[1]($("sheet-body"));
+}
+
+// ---------- Màn hình chúc mừng + pháo giấy ----------
+function celebrate({ title, lines }, action = null) {
+  const box = document.createElement("div");
+  box.className = "celebrate";
+  const colors = ["#fa7e1e", "#d62976", "#962fbf", "#4f5bd5", "#feda75", "#22c55e"];
+  const confetti = Array.from({ length: 90 }, () => {
+    const c = colors[Math.floor(Math.random() * colors.length)];
+    return `<i style="left:${Math.random() * 100}%;background:${c};animation-delay:${(Math.random() * 1.2).toFixed(2)}s;animation-duration:${(2.4 + Math.random() * 1.8).toFixed(2)}s;transform:rotate(${Math.floor(Math.random() * 360)}deg)"></i>`;
+  }).join("");
+  box.innerHTML = `<div class="confetti">${confetti}</div>
+    <div class="cel-card">
+      <div class="cel-emoji">🥳</div>
+      <h3>${e(title)}</h3>
+      ${lines.map((l) => `<p>${e(l)}</p>`).join("")}
+      ${action ? `<a class="cta grad" href="${e(action.href)}" target="_blank" rel="noopener">${e(action.label)}</a>` : ""}
+      <a class="cel-home" href="#">🏠 Về trang chính</a>
+    </div>`;
+  box.querySelector(".cel-home").onclick = () => box.remove();
+  box.onclick = (ev) => { if (ev.target === box) box.remove(); };
+  document.body.appendChild(box);
 }
 
 // ---------- Phóng to ảnh (bấm vào bất kỳ ảnh nào, kể cả ảnh đại diện) ----------
