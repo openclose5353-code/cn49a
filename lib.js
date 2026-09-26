@@ -45,3 +45,17 @@ export function extraUnlockText(amount, ladder, full = 1000000) {
 export function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
+
+// Gói dữ liệu gửi lên Google Apps Script khi tải ảnh chụp chuyển khoản lên web.
+export function uploadPayload({ person, amount, message, dataUrl }) {
+  const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+  return {
+    personKey: person.key,
+    personName: person.name,
+    amount,
+    message: String(message ?? "").trim().slice(0, 300),
+    mime: m ? m[1] : "",
+    data: m ? m[2] : "",
+    website: "",
+  };
+}

@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e } from "./lib.js";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload } from "./lib.js";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -114,9 +114,15 @@ function sheetJoin(body) {
     <div class="unlock" id="unlock" hidden></div>
     <div class="step">BƯỚC 3 · QUÉT MÃ ĐỂ CHUYỂN</div>
     <div id="pay"><p class="note">Chọn tên của bạn ở bước 1 để hiện mã QR.</p></div>
-    <div class="step">BƯỚC 4 · BÁO CHO CẢ LỚP</div>
-    ${DATA.zaloGroupUrl ? `<a class="cta grad" href="${e(DATA.zaloGroupUrl)}">📸 Gửi ảnh chụp vào nhóm Zalo</a>` : `<div class="cta grad">📸 Gửi ảnh chụp vào nhóm Zalo CN49A</div>`}
-    <p class="note">Gửi ảnh chụp chuyển khoản kèm một lời nhắn cho cả lớp. Vài phút sau, ảnh của bạn trên trang sẽ đổi sang viền màu 🎉</p>`;
+    <div class="step">BƯỚC 4 · GỬI ẢNH CHỤP CHUYỂN KHOẢN</div>
+    <p class="note" style="text-align:left;padding:0 16px 8px">Chọn <b>một</b> trong hai cách. Vài phút sau, ảnh của bạn trên trang sẽ đổi sang viền màu 🎉</p>
+    ${DATA.uploadUrl ? `
+    <textarea id="msg" class="search" rows="2" maxlength="300" placeholder="Lời nhắn cho cả lớp (không bắt buộc)"></textarea>
+    <label class="cta grad" style="cursor:pointer">⬆️ Tải ảnh chụp lên đây<input type="file" id="file" accept="image/*" hidden></label>
+    <p class="note" id="upl" aria-live="polite"></p>
+    <div class="or">— hoặc —</div>` : ""}
+    ${DATA.zaloGroupUrl ? `<a class="cta zalo" href="${e(DATA.zaloGroupUrl)}">📸 Gửi ảnh chụp vào nhóm Zalo</a>` : `<div class="cta zalo">📸 Gửi ảnh chụp vào nhóm Zalo CN49A</div>`}
+    <p class="note">Ảnh chụp chuyển khoản không bao giờ được đăng lên trang.</p>`;
 
   const drawWho = (q = "") => {
     const nq = transferContent("", q).trim().toLowerCase();
@@ -143,6 +149,25 @@ function sheetJoin(body) {
       </div>`;
     body.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Đã chép ✓"; } catch { b.textContent = "Hãy chép tay"; } }));
   };
+  const fileInput = body.querySelector("#file");
+  if (fileInput) fileInput.onchange = async () => {
+    const status = body.querySelector("#upl");
+    const file = fileInput.files[0];
+    fileInput.value = "";
+    if (!file) return;
+    if (!state.person) { status.textContent = "⚠️ Hãy chọn tên của bạn ở bước 1 trước."; return; }
+    if (!file.type.startsWith("image/")) { status.textContent = "⚠️ Chỉ nhận file ảnh."; return; }
+    status.textContent = "⏳ Đang tải lên…";
+    try {
+      const dataUrl = await toJpegDataUrl(file);
+      const payload = uploadPayload({ person: state.person, amount: state.amount, message: body.querySelector("#msg").value, dataUrl });
+      const res = await fetch(DATA.uploadUrl, { method: "POST", body: JSON.stringify(payload) });
+      const out = await res.json();
+      status.textContent = out.ok ? `✅ Đã nhận ảnh của ${state.person.name}. Cảm ơn bạn! Trang sẽ cập nhật trong vài phút.` : `⚠️ ${out.error ?? "Không tải lên được, hãy thử lại."}`;
+    } catch {
+      status.textContent = "⚠️ Không tải lên được. Hãy thử lại, hoặc gửi ảnh vào nhóm Zalo.";
+    }
+  };
   body.querySelector("#q").oninput = (ev) => drawWho(ev.target.value);
   body.querySelectorAll("#chips button").forEach((b) => (b.onclick = () => {
     const other = body.querySelector("#other");
@@ -154,6 +179,27 @@ function sheetJoin(body) {
   body.querySelector("#other").oninput = (ev) => { state.amount = Number(ev.target.value.replace(/\D/g, "")) || 0; drawPay(); };
   drawWho();
   drawPay();
+}
+
+// Thu nhỏ ảnh (tối đa 1600px, JPEG) trước khi gửi để nhanh trên 4G; ảnh chụp màn hình ngân hàng vẫn đọc rõ.
+async function toJpegDataUrl(file, max = 1600) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = url;
+    });
+    const k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * k);
+    c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.85);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function sheetProgram(body) {
