@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926e";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor } from "./lib.js?v=20260926f";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -31,10 +31,10 @@ function renderCountdown() {
   const target = Date.parse(DATA.event.date);
   const p = countdownParts(target, Date.now());
   $("countdown").innerHTML = p.done
-    ? `<div class="lbl">🎉 HÔM NAY LÀ NGÀY VỀ TRƯỜNG!</div><div class="when">📅 Chủ nhật 01/11/2026 · ⏰ 7h00 · 📍 KTX Kinh tế Quốc dân</div>`
+    ? `<div class="lbl">🎉 HÔM NAY LÀ NGÀY VỀ TRƯỜNG!</div><div class="when"><span>📅 Chủ nhật 01/11/2026 · ⏰ 7h00</span><span>📍 KTX Kinh tế Quốc dân</span></div>`
     : `<div class="lbl">⏳ CÒN LẠI ĐẾN NGÀY VỀ TRƯỜNG</div>
        <div class="nums"><div><b>${p.days}</b>NGÀY</div><div><b>${String(p.hours).padStart(2, "0")}</b>GIỜ</div><div><b>${String(p.minutes).padStart(2, "0")}</b>PHÚT</div><div><b>${String(p.seconds).padStart(2, "0")}</b>GIÂY</div></div>
-       <div class="when">📅 Chủ nhật 01/11/2026 · ⏰ 7h00 · 📍 KTX Kinh tế Quốc dân</div>`;
+       <div class="when"><span>📅 Chủ nhật 01/11/2026 · ⏰ 7h00</span><span>📍 KTX Kinh tế Quốc dân</span></div>`;
 }
 
 function renderRaised() {
