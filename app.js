@@ -1,0 +1,217 @@
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e } from "./lib.js";
+
+const $ = (id) => document.getElementById(id);
+let DATA;
+
+const initials = (name) => e(name.trim().split(/\s+/).pop()?.[0] ?? "?");
+const avatar = (p) => (p.avatar ? `<img src="${e(p.avatar)}" alt="" loading="lazy">` : `<span class="ph">${initials(p.name)}</span>`);
+const timeAgo = (ts) => {
+  const m = Math.floor((Date.now() - ts) / 60e3);
+  if (m < 1) return "vừa xong";
+  if (m < 60) return `${m} phút trước`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} giờ trước`;
+  return `${Math.floor(h / 24)} ngày trước`;
+};
+
+function renderCountdown() {
+  const target = Date.parse(DATA.event.date);
+  const p = countdownParts(target, Date.now());
+  $("countdown").innerHTML = p.done
+    ? `<div class="lbl">🎉 HÔM NAY LÀ NGÀY VỀ TRƯỜNG!</div><div class="when">Chủ nhật 01/11/2026 · 7h00 · KTX Kinh tế Quốc dân</div>`
+    : `<div class="lbl">⏳ CÒN LẠI ĐẾN NGÀY VỀ TRƯỜNG</div>
+       <div class="nums"><div><b>${p.days}</b>NGÀY</div><div><b>${String(p.hours).padStart(2, "0")}</b>GIỜ</div><div><b>${String(p.minutes).padStart(2, "0")}</b>PHÚT</div><div><b>${String(p.seconds).padStart(2, "0")}</b>GIÂY</div></div>
+       <div class="when">Chủ nhật 01/11/2026 · 7h00 · KTX Kinh tế Quốc dân</div>`;
+}
+
+function renderRaised() {
+  const g = DATA.goal;
+  const pct = Math.min(100, (100 * g.raised) / g.minimum);
+  $("raised").innerHTML = `<div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.04em">💰 ĐÃ GÓP (CẬP NHẬT TRỰC TIẾP)</div>
+    <div class="amt">${formatVnd(g.raised)} <small>/ ${formatVnd(g.minimum)}</small></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="sub"><span>Mục tiêu tối thiểu: ${formatMillions(g.minimum)} (${DATA.stats.classSize} bạn × 1 triệu)</span><span>${Math.floor(pct)}%</span></div>
+    <div class="sub" style="margin-top:4px"><span>Mục tiêu đầy đủ (gồm gameshow, MC, clip, tri ân): ${formatMillions(g.full)}</span></div>`;
+}
+
+function renderHeader() {
+  const shown = DATA.people.filter((p) => p.status !== "none").slice(0, 14);
+  const rest = DATA.people.length - shown.length;
+  $("mosaic").innerHTML =
+    shown.map((p) => `<a class="r ${p.status}" href="#ca-lop" title="${e(p.name)}">${avatar(p)}</a>`).join("") +
+    (rest > 0 ? `<a class="more" href="#ca-lop">+${rest}</a>` : "");
+  $("stats").innerHTML = `<div><b>${DATA.stats.paid}</b>đã đóng</div><div><b>${DATA.stats.registered}</b>đã hẹn</div><div><b>${DATA.stats.classSize}</b>cả lớp</div>`;
+  $("bio").innerHTML = `<b>CN49A · ${e(DATA.event.title)} 🎓</b><br>QTKD Công nghiệp &amp; Xây dựng · KTQD 2007–2011<br>💛 1 triệu/bạn — góp thêm để buổi họp mặt hay hơn<br><span class="muted" style="font-size:12px">Viền màu = đã đóng · viền xám = đã hẹn</span>`;
+}
+
+function renderHighlights() {
+  const ms = DATA.milestones.map((m) => `<div><div class="c ${m.unlocked ? "on" : ""}">${m.icon}<span class="lock">${m.unlocked ? "🔓" : "🔒"}</span></div>${m.people} bạn<br>${e(m.short ?? m.label)}</div>`);
+  const ld = DATA.ladder.map((s) => `<div><div class="c ${s.state === "done" ? "on" : ""}">${s.icon}<span class="lock">${s.state === "done" ? "✅" : s.state === "active" ? "▶️" : "🔒"}</span></div>${e(s.label)}</div>`);
+  $("highlights").innerHTML = [...ms, ...ld].join("");
+}
+
+function renderFund() {
+  const s = DATA.ladder.find((x) => x.state === "active");
+  const sch = DATA.scholarship;
+  let line;
+  if (!s) line = "Quỹ góp thêm đã đủ mọi hạng mục 🎉";
+  else if (s.target == null) line = `đang góp cho ${s.icon} <b>${e(s.label)}</b> · ${formatMillions(sch.total)} (${sch.units} suất)`;
+  else line = `đang mở khoá ${s.icon} <b>${e(s.label)}</b> (${formatMillions(s.filled)}/${formatMillions(s.target)})
+    <div class="bar"><i style="width:${Math.min(100, (100 * s.filled) / s.target)}%"></i></div>
+    <span class="muted">Còn ${formatMillions(s.target - s.filled)} nữa — góp thêm khi quét QR</span>`;
+  const pledge = sch.pledgeUnlocked
+    ? `<br>🎓 ${e(sch.pledgeName)} góp thêm ${formatMillions(sch.pledgeAmount)} cho học bổng ✅`
+    : `<br><span class="muted">🎓 Đủ 40 bạn: ${e(sch.pledgeName)} góp thêm ${formatMillions(sch.pledgeAmount)} cho học bổng</span>`;
+  $("fund").innerHTML = `<b>Quỹ góp thêm:</b> ${formatVnd(DATA.ledger.extra)} → ${line}${pledge}`;
+}
+
+function feedItem(f) {
+  const people = new Map(DATA.people.map((p) => [p.key, p]));
+  if (f.type === "joined") {
+    const p = people.get(f.personKey);
+    if (!p) return "";
+    const tier = p.badge ? ` · ${p.badge}` : "";
+    return `<article class="post"><div class="post-h">${avatar(p)}<div>${e(p.name)}${tier}<small>vừa tham gia · ${timeAgo(f.ts)}</small></div></div>
+      <div class="msg"><div class="big-emoji">${p.badge || "🎉"}</div>${p.message ? `<b>“${e(p.message)}”</b>` : `<b>Đã chốt vé về trường 01/11!</b>`}</div></article>`;
+  }
+  if (f.type === "milestone")
+    return `<article class="post"><div class="msg" style="margin-top:12px"><div class="big-emoji">${f.icon}🔓</div><b>Đủ ${f.people} bạn — đã mở khoá: ${e(f.label)}!</b><div class="muted" style="margin-top:6px">${timeAgo(f.ts)}</div></div></article>`;
+  if (f.type === "notice")
+    return `<article class="post"><div class="post-h"><span class="ph">📌</span><div>${e(f.by ?? "Ban liên lạc")}<small>thông báo · ${timeAgo(f.ts)}</small></div></div><div class="ptxt" style="white-space:pre-line">${e(f.text)}</div></article>`;
+  if (f.type === "photos")
+    return `<article class="post"><div class="post-h"><span class="ph">📷</span><div>${e(f.by ?? "Drive của lớp")}<small>đã thêm ${f.count} ảnh · ${timeAgo(f.ts)}</small></div></div>
+      <div class="pics ${f.srcs.length === 1 ? "one" : ""}">${f.srcs.map((s) => `<img src="${e(s)}" alt="" loading="lazy">`).join("")}</div></article>`;
+  if (f.type === "video")
+    return `<article class="post"><div class="post-h"><span class="ph">🎬</span><div>Clip của lớp<small>${e(f.title)}</small></div></div>
+      <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(f.youtubeId)}" loading="lazy" allowfullscreen title="${e(f.title)}"></iframe></div></article>`;
+  return "";
+}
+
+function renderFeed() {
+  $("feed").innerHTML = DATA.feed.map(feedItem).join("");
+}
+
+function renderGallery(era = "all") {
+  const imgs = DATA.gallery.filter((g) => era === "all" || g.era === era);
+  const tab = (k, label) => `<button data-era="${k}" class="${era === k ? "on" : ""}">${label}</button>`;
+  $("gallery").innerHTML = `<div class="tabs">${tab("all", "▦ Tất cả")}${tab("then", "Ngày ấy")}${tab("now", "Bây giờ")}</div>
+    <div class="grid3">${imgs.map((g) => `<img src="${e(g.src)}" alt="" loading="lazy">`).join("")}</div>`;
+  $("gallery").querySelectorAll("button").forEach((b) => (b.onclick = () => renderGallery(b.dataset.era)));
+}
+
+// ---------- Màn hình phụ ----------
+function sheetJoin(body) {
+  const tiers = DATA.tiers;
+  const state = { person: null, amount: tiers[0].amount };
+  const people = [...DATA.people].sort((a, b) => (a.status === "registered" ? -1 : 0) - (b.status === "registered" ? -1 : 0));
+  body.innerHTML = `
+    <div class="step">BƯỚC 1 · BẠN LÀ AI?</div>
+    <input class="search" id="q" placeholder="🔍 Gõ tên của bạn…" autocomplete="off">
+    <div class="list" id="who"></div>
+    <div class="step">BƯỚC 2 · CHỌN MỨC</div>
+    <div class="chips" id="chips">${tiers.map((t) => `<button data-a="${t.amount}">${formatMillions(t.amount)}<small>${t.badge} ${e(t.name)}</small></button>`).join("")}<button data-a="other">Khác…<small>&nbsp;</small></button></div>
+    <input class="other-amount" id="other" inputmode="numeric" placeholder="Nhập số tiền, ví dụ 1500000">
+    <div class="unlock" id="unlock" hidden></div>
+    <div class="step">BƯỚC 3 · QUÉT MÃ ĐỂ CHUYỂN</div>
+    <div id="pay"><p class="note">Chọn tên của bạn ở bước 1 để hiện mã QR.</p></div>
+    <div class="step">BƯỚC 4 · BÁO CHO CẢ LỚP</div>
+    ${DATA.zaloGroupUrl ? `<a class="cta grad" href="${e(DATA.zaloGroupUrl)}">📸 Gửi ảnh chụp vào nhóm Zalo</a>` : `<div class="cta grad">📸 Gửi ảnh chụp vào nhóm Zalo CN49A</div>`}
+    <p class="note">Gửi ảnh chụp chuyển khoản kèm một lời nhắn cho cả lớp. Vài phút sau, ảnh của bạn trên trang sẽ đổi sang viền màu 🎉</p>`;
+
+  const drawWho = (q = "") => {
+    const nq = transferContent("", q).trim().toLowerCase();
+    body.querySelector("#who").innerHTML = people
+      .filter((p) => !nq || transferContent("", p.name).toLowerCase().includes(nq))
+      .map((p) => `<div class="who ${state.person?.key === p.key ? "sel" : ""}" data-k="${e(p.key)}">${avatar(p)}<div>${e(p.name)}<small>${p.status === "paid" ? "Đã tham gia ✓" : p.status === "registered" ? "Đã hẹn 01/11 ✓" : "&nbsp;"}</small></div>${state.person?.key === p.key ? '<span class="tick">✓</span>' : ""}</div>`)
+      .join("");
+    body.querySelectorAll(".who").forEach((el) => (el.onclick = () => { state.person = people.find((p) => p.key === el.dataset.k); drawWho(body.querySelector("#q").value); drawPay(); }));
+  };
+  const drawPay = () => {
+    body.querySelectorAll("#chips button").forEach((b) => b.classList.toggle("on", String(state.amount) === b.dataset.a || (b.dataset.a === "other" && !tiers.some((t) => t.amount === state.amount))));
+    const u = extraUnlockText(state.amount, DATA.ladder);
+    body.querySelector("#unlock").hidden = !u;
+    body.querySelector("#unlock").textContent = u ? `✨ ${u}` : "";
+    if (!state.person || !(state.amount >= 1000)) return;
+    const content = transferContent(DATA.bank.transferPrefix, state.person.name);
+    body.querySelector("#pay").innerHTML = `<img class="qr" src="${e(qrUrl(DATA.bank, state.amount, content))}" alt="Mã VietQR">
+      <div class="kv">
+        <div><span>Chủ TK</span>${e(DATA.bank.accountName)}</div>
+        <div><span>Ngân hàng</span>${e(DATA.bank.bankName)}</div>
+        <div><span>Số TK</span><span style="color:#111">${e(DATA.bank.accountNo)} <button data-copy="${e(DATA.bank.accountNo)}">Chép</button></span></div>
+        <div><span>Số tiền</span><b>${formatVnd(state.amount)}</b></div>
+        <div><span>Nội dung</span><span style="color:#111"><b>${e(content)}</b> <button data-copy="${e(content)}">Chép</button></span></div>
+      </div>`;
+    body.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Đã chép ✓"; } catch { b.textContent = "Hãy chép tay"; } }));
+  };
+  body.querySelector("#q").oninput = (ev) => drawWho(ev.target.value);
+  body.querySelectorAll("#chips button").forEach((b) => (b.onclick = () => {
+    const other = body.querySelector("#other");
+    if (b.dataset.a === "other") { other.style.display = "block"; other.focus(); return; }
+    other.style.display = "none";
+    state.amount = Number(b.dataset.a);
+    drawPay();
+  }));
+  body.querySelector("#other").oninput = (ev) => { state.amount = Number(ev.target.value.replace(/\D/g, "")) || 0; drawPay(); };
+  drawWho();
+  drawPay();
+}
+
+function sheetProgram(body) {
+  body.innerHTML = `<div class="cd grad" style="padding:12px"><div class="when">Chủ nhật 01/11/2026 · còn <b style="font-size:20px">${countdownParts(Date.parse(DATA.event.date), Date.now()).days}</b> ngày</div></div>
+    <div class="tl">${DATA.program.map((p) => `<div class="${p.highlight ? "hi" : ""}"><b>${e(p.time)}</b>${e(p.text)}</div>`).join("")}</div>`;
+}
+
+function sheetLedger(body) {
+  const L = DATA.ledger;
+  const stateIcon = { done: "✅", active: "▶️", locked: "🔒" };
+  body.innerHTML = `
+    <div class="sum"><div style="background:#ecfdf3;color:#067647">Đã thu<b>${formatVnd(L.income)}</b></div><div style="background:#fef3f2;color:#b42318">Đã chi<b>${formatVnd(L.expenseTotal)}</b></div><div style="background:#f4f3ff;color:#5925dc">Còn lại<b>${formatVnd(L.balance)}</b></div></div>
+    <div class="sec">MỤC TIÊU</div>
+    <div class="row"><div>Tối thiểu<small>${DATA.stats.classSize} bạn × 1.000.000đ</small></div><b>${formatVnd(DATA.goal.minimum)}</b></div>
+    <div class="row"><div>Đầy đủ<small>tối thiểu + các hạng mục góp thêm</small></div><b>${formatVnd(DATA.goal.full)}</b></div>
+    <div class="sec">QUỸ SỰ KIỆN (1 TRIỆU/BẠN)</div>
+    <div class="row"><div>Đã thu<small>${DATA.stats.paid} bạn × 1.000.000đ</small></div><b>${formatVnd(L.eventFund)}</b></div>
+    <div class="sec">QUỸ GÓP THÊM · THEO THỨ TỰ</div>
+    ${DATA.ladder.map((s) => `<div class="row"><div>${stateIcon[s.state]} ${s.icon} ${e(s.label)}<small>${s.target == null ? `${DATA.scholarship.units} suất · ${formatMillions(s.perUnit)}/suất` : `${formatMillions(s.filled)}/${formatMillions(s.target)}`}</small></div><b>${formatVnd(s.target == null ? DATA.scholarship.total : s.filled)}</b></div>`).join("")}
+    <div class="sec">ĐÃ CHI</div>
+    ${L.expenses.length ? L.expenses.map((x) => `<div class="row"><div>${e(x.label)}<small>${e(x.date)}</small></div><b>−${formatVnd(x.amount)}</b></div>`).join("") : `<p class="note" style="padding-top:10px">${e(L.note)}</p>`}
+    <p class="note" style="padding-top:12px">Không hiện số tiền của từng người — chỉ hiện tổng.</p>`;
+}
+
+function sheetClass(body) {
+  const label = { paid: "Đã tham gia ✓", registered: "Đã hẹn 01/11", none: "" };
+  body.innerHTML = DATA.people.map((p) => `<div class="who"><span class="r ${p.status}">${avatar(p)}</span><div>${e(p.name)} ${p.badge}<small>${label[p.status]}${p.message ? ` · “${e(p.message)}”` : ""}</small></div></div>`).join("");
+}
+
+const SHEETS = { "tham-gia": ["Tham gia họp mặt 15 năm", sheetJoin], "chuong-trinh": ["Chương trình ngày 01/11", sheetProgram], "thu-chi": ["Thu – chi công khai", sheetLedger], "ca-lop": ["Cả lớp CN49A", sheetClass] };
+
+function route() {
+  const s = SHEETS[location.hash.slice(1)];
+  $("sheet").hidden = !s;
+  document.body.style.overflow = s ? "hidden" : "";
+  if (!s) return;
+  $("sheet-title").textContent = s[0];
+  $("sheet").scrollTop = 0;
+  s[1]($("sheet-body"));
+}
+
+async function main() {
+  const res = await fetch(`data.json?t=${Date.now()}`);
+  DATA = await res.json();
+  renderCountdown();
+  setInterval(renderCountdown, 1000);
+  renderRaised();
+  renderHeader();
+  renderHighlights();
+  renderFund();
+  renderFeed();
+  renderGallery();
+  $("updated").textContent = new Date(DATA.generatedAt).toLocaleString("vi-VN");
+  window.addEventListener("hashchange", route);
+  route();
+}
+
+main().catch((err) => {
+  document.querySelector(".app").insertAdjacentHTML("beforeend", `<p class="note">Không tải được dữ liệu. Hãy thử tải lại trang.</p>`);
+  console.error(err);
+});
