@@ -249,5 +249,3 @@ button.cta { width: calc(100% - 32px); border: 0; font-family: var(--font); curs
 .clips figcaption { font-size: 13px; color: var(--muted); padding: 6px 16px 0; }
 /* Ảnh mới trong 24 giờ (USER 27/09) */
 .sec-t .new-n { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 10px; background: linear-gradient(45deg, #fa7e1e, #d62976); color: #fff; font-size: 12px; font-weight: 700; vertical-align: 2px; }
-.grid3 .nw { position: relative; display: block; }
-.grid3 .nw::after { content: "Mới"; position: absolute; top: 6px; left: 6px; padding: 1px 7px; border-radius: 8px; background: #d62976; color: #fff; font-size: 11px; font-weight: 700; pointer-events: none; }

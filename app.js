@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos, NEW_MS } from "./lib.js?v=20260927e";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos, NEW_MS } from "./lib.js?v=20260927f";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -162,7 +162,7 @@ function renderGallery(key = "all", shown = PAGE) {
     ${key === "video" ? `<div class="clips">${clips.map((c) => `<figure>${c.drive
       ? `<div class="video"><iframe src="https://drive.google.com/file/d/${e(c.drive)}/preview" loading="lazy" allow="autoplay; fullscreen" allowfullscreen title="${e(c.title)}"></iframe></div>`
       : `<video src="${e(c.src)}" poster="${e(c.poster)}" controls playsinline preload="none"></video>`}<figcaption>${e(c.title)}${c.duration ? ` · ${Math.floor(c.duration / 60)}:${String(c.duration % 60).padStart(2, "0")}` : ""}</figcaption></figure>`).join("")}${yt.map((v) => `<figure><div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(v.youtubeId)}" loading="lazy" allowfullscreen title="${e(v.title)}"></iframe></div><figcaption>${e(v.title)}</figcaption></figure>`).join("")}</div>` : ""}
-    <div class="grid3" data-group>${imgs.slice(0, shown).map((g, i) => (g.isNew ? `<span class="nw">${photo(g.src, galleryItems[i].cap, [g.w, g.h])}</span>` : photo(g.src, galleryItems[i].cap, [g.w, g.h]))).join("")}</div>
+    <div class="grid3" data-group>${imgs.slice(0, shown).map((g, i) => photo(g.src, galleryItems[i].cap, [g.w, g.h])).join("")}</div>
     ${imgs.length > shown ? `<button class="more-photos" id="more-photos">Xem thêm ${Math.min(PAGE, imgs.length - shown)} ảnh · còn ${imgs.length - shown}</button>` : ""}`;
   $("gallery").querySelectorAll("[data-album]").forEach((b) => (b.onclick = () => renderGallery(b.dataset.album)));
   const more = $("more-photos");
