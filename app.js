@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos } from "./lib.js?v=20260927d";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos, NEW_MS } from "./lib.js?v=20260927e";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -145,7 +145,9 @@ let galleryItems = []; // cả album đang chọn — trình xem ảnh vuốt đ
 function renderGallery(key = "all", shown = PAGE) {
   const albums = DATA.albums ?? [];
   const title = new Map(albums.map((a) => [a.key, `${a.emoji} ${a.title}`]));
-  const imgs = key === "video" ? [] : albumPhotos(DATA.gallery, albums, key);
+  const imgs = key === "video" ? [] : albumPhotos(DATA.gallery, key);
+  const newCount = DATA.gallery.filter((g) => Date.now() - g.ts < NEW_MS).length;
+  const allCover = albumPhotos(DATA.gallery, "all")[0]?.src;
   const circle = (k, cover, emoji, label, count, unit = "ảnh") => `<button data-album="${k}" class="${key === k ? "on" : ""}${count ? "" : " empty"}">
       <span class="c">${cover ? `<img src="${e(cover)}" alt="" loading="lazy">` : `<i>${emoji}</i>`}</span>
       <b>${e(label)}</b><small>${count ? `${count} ${unit}` : "sắp có"}</small></button>`;
@@ -154,13 +156,13 @@ function renderGallery(key = "all", shown = PAGE) {
   const nVideo = clips.length + yt.length;
   galleryItems = imgs.map((g) => ({ src: g.src, cap: [title.get(g.album), g.by].filter(Boolean).join(" · "), dims: [g.w, g.h] }));
   const cur = albums.find((a) => a.key === key);
-  $("gallery").innerHTML = `<h2 class="sec-t">📸 Album kỷ niệm <small>${DATA.gallery.length} ảnh</small></h2>
-    <div class="alb">${circle("all", DATA.gallery[0]?.src, "▦", "Tất cả", DATA.gallery.length)}${nVideo ? circle("video", clips[0]?.poster, "🎬", "Video", nVideo, "clip") : ""}${albums.map((a) => circle(a.key, a.cover, a.emoji, a.title, a.count)).join("")}</div>
+  $("gallery").innerHTML = `<h2 class="sec-t">📸 Album kỷ niệm <small>${DATA.gallery.length} ảnh</small>${newCount ? `<span class="new-n">🆕 ${newCount} ảnh mới</span>` : ""}</h2>
+    <div class="alb">${circle("all", allCover, "▦", "Tất cả", DATA.gallery.length)}${nVideo ? circle("video", clips[0]?.poster, "🎬", "Video", nVideo, "clip") : ""}${albums.map((a) => circle(a.key, a.cover, a.emoji, a.title, a.count)).join("")}</div>
     ${cur && !cur.count ? `<p class="note">${cur.key === "reunion15" ? "Ảnh buổi họp mặt 01/11 sẽ hiện ở đây 🎉" : "Chưa có ảnh"}</p>` : ""}
     ${key === "video" ? `<div class="clips">${clips.map((c) => `<figure>${c.drive
       ? `<div class="video"><iframe src="https://drive.google.com/file/d/${e(c.drive)}/preview" loading="lazy" allow="autoplay; fullscreen" allowfullscreen title="${e(c.title)}"></iframe></div>`
       : `<video src="${e(c.src)}" poster="${e(c.poster)}" controls playsinline preload="none"></video>`}<figcaption>${e(c.title)}${c.duration ? ` · ${Math.floor(c.duration / 60)}:${String(c.duration % 60).padStart(2, "0")}` : ""}</figcaption></figure>`).join("")}${yt.map((v) => `<figure><div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(v.youtubeId)}" loading="lazy" allowfullscreen title="${e(v.title)}"></iframe></div><figcaption>${e(v.title)}</figcaption></figure>`).join("")}</div>` : ""}
-    <div class="grid3" data-group>${imgs.slice(0, shown).map((g) => photo(g.src, galleryItems[imgs.indexOf(g)].cap, [g.w, g.h])).join("")}</div>
+    <div class="grid3" data-group>${imgs.slice(0, shown).map((g, i) => (g.isNew ? `<span class="nw">${photo(g.src, galleryItems[i].cap, [g.w, g.h])}</span>` : photo(g.src, galleryItems[i].cap, [g.w, g.h]))).join("")}</div>
     ${imgs.length > shown ? `<button class="more-photos" id="more-photos">Xem thêm ${Math.min(PAGE, imgs.length - shown)} ảnh · còn ${imgs.length - shown}</button>` : ""}`;
   $("gallery").querySelectorAll("[data-album]").forEach((b) => (b.onclick = () => renderGallery(b.dataset.album)));
   const more = $("more-photos");

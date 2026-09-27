@@ -129,8 +129,30 @@ export function thankYou(person, amount, via) {
 // Lưới dùng ảnh nhỏ photos/sm/…; bấm vào mở ảnh lớn photos/…
 export const fullSrc = (src) => String(src).replace("photos/sm/", "photos/");
 
-export function albumPhotos(gallery, albums, key) {
-  const order = new Map(albums.map((a, i) => [a.key, i]));
-  const list = key === "all" ? [...gallery] : gallery.filter((g) => g.album === key);
-  return list.sort((a, b) => (order.get(a.album) ?? 99) - (order.get(b.album) ?? 99) || b.ts - a.ts);
+// Thứ tự ảnh (USER 27/09): album riêng → mới nhất trước.
+// "Tất cả" → ảnh tải lên trong 24 giờ qua ở đầu (isNew), phần còn lại xáo theo ngày (giờ VN):
+// cả lớp thấy cùng một thứ tự trong ngày, sang ngày mới đổi — trang luôn có vẻ mới.
+export const NEW_MS = 864e5;
+const vnDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
+
+function seededRandom(seed) {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 3432918353), (h = (h << 13) | (h >>> 19));
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+export function albumPhotos(gallery, key, now = Date.now()) {
+  if (key !== "all") return gallery.filter((g) => g.album === key).sort((a, b) => b.ts - a.ts);
+  const fresh = gallery.filter((g) => now - g.ts < NEW_MS).sort((a, b) => b.ts - a.ts).map((g) => ({ ...g, isNew: true }));
+  const rest = gallery.filter((g) => now - g.ts >= NEW_MS).sort((a, b) => String(a.src).localeCompare(String(b.src)));
+  const rnd = seededRandom(vnDay(now));
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  return [...fresh, ...rest];
 }
