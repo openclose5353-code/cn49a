@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou } from "./lib.js?v=20260926i";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos } from "./lib.js?v=20260927a";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -8,7 +8,7 @@ const avatar = (p) =>
   p.avatar
     ? `<img src="${e(p.avatar)}" data-full="${e(p.avatarFull ?? p.avatar)}" data-cap="${e(p.name)}"${p.status === "none" ? ' data-blur="1"' : ""} alt="" loading="lazy">`
     : `<span class="ph">${initials(p.name)}</span>`;
-const photo = (src, cap) => `<img src="${e(src)}" data-full="${e(src)}" data-cap="${e(cap ?? "")}" alt="" loading="lazy">`;
+const photo = (src, cap) => `<img src="${e(src)}" data-full="${e(fullSrc(src))}" data-cap="${e(cap ?? "")}" alt="" loading="lazy">`;
 const ringed = (p) => `<span class="r ${p.status}">${avatar(p)}</span>`;
 const badgeHtml = (p) => {
   const t = tierFor(p, DATA.tiers);
@@ -139,12 +139,23 @@ function renderFeed() {
   $("feed").innerHTML = DATA.feed.map(feedItem).join("");
 }
 
-function renderGallery(era = "all") {
-  const imgs = DATA.gallery.filter((g) => era === "all" || g.era === era);
-  const tab = (k, label) => `<button data-era="${k}" class="${era === k ? "on" : ""}">${label}</button>`;
-  $("gallery").innerHTML = `<div class="tabs">${tab("all", "▦ Tất cả")}${tab("then", "Ngày ấy")}${tab("now", "Bây giờ")}</div>
-    <div class="grid3" data-group>${imgs.map((g) => photo(g.src, g.by ?? "Drive của lớp")).join("")}</div>`;
-  $("gallery").querySelectorAll("button").forEach((b) => (b.onclick = () => renderGallery(b.dataset.era)));
+const PAGE = 60;
+function renderGallery(key = "all", shown = PAGE) {
+  const albums = DATA.albums ?? [];
+  const title = new Map(albums.map((a) => [a.key, `${a.emoji} ${a.title}`]));
+  const imgs = albumPhotos(DATA.gallery, albums, key);
+  const circle = (k, cover, emoji, label, count) => `<button data-album="${k}" class="${key === k ? "on" : ""}${count ? "" : " empty"}">
+      <span class="c">${cover ? `<img src="${e(cover)}" alt="" loading="lazy">` : `<i>${emoji}</i>`}</span>
+      <b>${e(label)}</b><small>${count ? `${count} ảnh` : "sắp có"}</small></button>`;
+  const cur = albums.find((a) => a.key === key);
+  $("gallery").innerHTML = `<h2 class="sec-t">📸 Album kỷ niệm <small>${DATA.gallery.length} ảnh</small></h2>
+    <div class="alb">${circle("all", DATA.gallery[0]?.src, "▦", "Tất cả", DATA.gallery.length)}${albums.map((a) => circle(a.key, a.cover, a.emoji, a.title, a.count)).join("")}</div>
+    ${cur && !cur.count ? `<p class="note">${cur.key === "reunion15" ? "Ảnh buổi họp mặt 01/11 sẽ hiện ở đây 🎉" : "Chưa có ảnh"}</p>` : ""}
+    <div class="grid3" data-group>${imgs.slice(0, shown).map((g) => photo(g.src, [title.get(g.album), g.by].filter(Boolean).join(" · "))).join("")}</div>
+    ${imgs.length > shown ? `<button class="more-photos" id="more-photos">Xem thêm ${Math.min(PAGE, imgs.length - shown)} ảnh · còn ${imgs.length - shown}</button>` : ""}`;
+  $("gallery").querySelectorAll("[data-album]").forEach((b) => (b.onclick = () => renderGallery(b.dataset.album)));
+  const more = $("more-photos");
+  if (more) more.onclick = () => renderGallery(key, shown + PAGE);
 }
 
 // ---------- Màn hình phụ ----------

@@ -125,3 +125,12 @@ export function thankYou(person, amount, via) {
   }
   return { title: `🎉 Tuyệt vời, ${name}!`, lines: ["Bước cuối: gửi ảnh chụp chuyển khoản vào nhóm Zalo CN49A.", "Vài phút sau ảnh của bạn trên trang sẽ đổi sang viền màu 🌈", bye] };
 }
+
+// Lưới dùng ảnh nhỏ photos/sm/…; bấm vào mở ảnh lớn photos/…
+export const fullSrc = (src) => String(src).replace("photos/sm/", "photos/");
+
+export function albumPhotos(gallery, albums, key) {
+  const order = new Map(albums.map((a, i) => [a.key, i]));
+  const list = key === "all" ? [...gallery] : gallery.filter((g) => g.album === key);
+  return list.sort((a, b) => (order.get(a.album) ?? 99) - (order.get(b.album) ?? 99) || b.ts - a.ts);
+}
