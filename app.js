@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos } from "./lib.js?v=20260927b";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos } from "./lib.js?v=20260927c";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -148,13 +148,15 @@ function renderGallery(key = "all", shown = PAGE) {
       <span class="c">${cover ? `<img src="${e(cover)}" alt="" loading="lazy">` : `<i>${emoji}</i>`}</span>
       <b>${e(label)}</b><small>${count ? `${count} ${unit}` : "sắp có"}</small></button>`;
   const clips = DATA.clips ?? [];
-  const yt = DATA.feed.filter((f) => f.type === "video");
+  const yt = DATA.youtube ?? DATA.feed.filter((f) => f.type === "video");
   const nVideo = clips.length + yt.length;
   const cur = albums.find((a) => a.key === key);
   $("gallery").innerHTML = `<h2 class="sec-t">📸 Album kỷ niệm <small>${DATA.gallery.length} ảnh</small></h2>
     <div class="alb">${circle("all", DATA.gallery[0]?.src, "▦", "Tất cả", DATA.gallery.length)}${nVideo ? circle("video", clips[0]?.poster, "🎬", "Video", nVideo, "clip") : ""}${albums.map((a) => circle(a.key, a.cover, a.emoji, a.title, a.count)).join("")}</div>
     ${cur && !cur.count ? `<p class="note">${cur.key === "reunion15" ? "Ảnh buổi họp mặt 01/11 sẽ hiện ở đây 🎉" : "Chưa có ảnh"}</p>` : ""}
-    ${key === "video" ? `<div class="clips">${clips.map((c) => `<figure><video src="${e(c.src)}" poster="${e(c.poster)}" controls playsinline preload="none"></video><figcaption>${e(c.title)}${c.duration ? ` · ${Math.floor(c.duration / 60)}:${String(c.duration % 60).padStart(2, "0")}` : ""}</figcaption></figure>`).join("")}${yt.map((v) => `<figure><div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(v.youtubeId)}" loading="lazy" allowfullscreen title="${e(v.title)}"></iframe></div><figcaption>${e(v.title)}</figcaption></figure>`).join("")}</div>` : ""}
+    ${key === "video" ? `<div class="clips">${clips.map((c) => `<figure>${c.drive
+      ? `<div class="video"><iframe src="https://drive.google.com/file/d/${e(c.drive)}/preview" loading="lazy" allow="autoplay; fullscreen" allowfullscreen title="${e(c.title)}"></iframe></div>`
+      : `<video src="${e(c.src)}" poster="${e(c.poster)}" controls playsinline preload="none"></video>`}<figcaption>${e(c.title)}${c.duration ? ` · ${Math.floor(c.duration / 60)}:${String(c.duration % 60).padStart(2, "0")}` : ""}</figcaption></figure>`).join("")}${yt.map((v) => `<figure><div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(v.youtubeId)}" loading="lazy" allowfullscreen title="${e(v.title)}"></iframe></div><figcaption>${e(v.title)}</figcaption></figure>`).join("")}</div>` : ""}
     <div class="grid3" data-group>${imgs.slice(0, shown).map((g) => photo(g.src, [title.get(g.album), g.by].filter(Boolean).join(" · "))).join("")}</div>
     ${imgs.length > shown ? `<button class="more-photos" id="more-photos">Xem thêm ${Math.min(PAGE, imgs.length - shown)} ảnh · còn ${imgs.length - shown}</button>` : ""}`;
   $("gallery").querySelectorAll("[data-album]").forEach((b) => (b.onclick = () => renderGallery(b.dataset.album)));
