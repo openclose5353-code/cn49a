@@ -156,3 +156,8 @@ export function albumPhotos(gallery, key, now = Date.now()) {
   }
   return [...fresh, ...rest];
 }
+
+// Album Video: clip trên web / trình phát Drive + link YouTube, mới bỏ lên nhất trước (USER 27/09)
+export function videoList(clips, youtube) {
+  return [...clips, ...youtube].sort((a, b) => (Date.parse(b.addedAt) || 0) - (Date.parse(a.addedAt) || 0));
+}
