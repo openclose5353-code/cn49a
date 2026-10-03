@@ -1,4 +1,4 @@
-import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20260927g";
+import { transferContent, qrUrl, countdownParts, formatVnd, formatMillions, extraUnlockText, escapeHtml as e, uploadPayload, statusNote, tierFor, milestoneTrack, ladderTrack, thankYou, fullSrc, albumPhotos, NEW_MS, videoList, goalProgress } from "./lib.js?v=20261003a";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -40,12 +40,15 @@ function renderCountdown() {
 
 function renderRaised() {
   const g = DATA.goal;
-  const pct = Math.min(100, (100 * g.raised) / g.minimum);
+  const p = goalProgress(g);
   $("raised").innerHTML = `<div class="lbl">💰 ĐÃ GÓP · CẬP NHẬT TRỰC TIẾP</div>
-    <div class="amt">${formatVnd(g.raised)} <small>/ ${formatVnd(g.minimum)}</small></div>
-    <div class="bar"><i style="width:${pct}%"></i></div>
-    <div class="sub"><span>🎯 Mục tiêu tối thiểu: <b>${formatMillions(g.minimum)}</b></span><span><b>${Math.floor(pct)}%</b></span></div>
-    <div class="sub"><span>🚀 Mục tiêu đầy đủ: <b>${formatMillions(g.full)}</b> · gồm gameshow, MC, clip, tri ân, học bổng</span></div>`;
+    <div class="amt">${formatVnd(g.raised)} <small>/ ${formatVnd(p.target)}</small></div>
+    <div class="bar"><i style="width:${p.pct}%"></i>${p.markPct == null ? "" : `<em style="left:${p.markPct}%"></em>`}</div>
+    ${p.reached
+      ? `<div class="sub"><span>✅ Đã đạt mốc tối thiểu <b>${formatMillions(g.minimum)}</b> 🎉</span><span><b>${Math.floor(p.pct)}%</b></span></div>
+    <div class="sub"><span>🎯 Mục tiêu tiếp theo: <b>${formatMillions(g.full)}</b> · gồm gameshow, MC, clip, tri ân, học bổng</span></div>`
+      : `<div class="sub"><span>🎯 Mục tiêu tối thiểu: <b>${formatMillions(g.minimum)}</b></span><span><b>${Math.floor(p.pct)}%</b></span></div>
+    <div class="sub"><span>🚀 Mục tiêu đầy đủ: <b>${formatMillions(g.full)}</b> · gồm gameshow, MC, clip, tri ân, học bổng</span></div>`}`;
 }
 
 function renderHeader() {
@@ -172,29 +175,68 @@ function renderGallery(key = "all", shown = PAGE) {
 }
 
 // ---------- Màn hình phụ ----------
+// Mỗi lúc chỉ một bước rõ; bước khác mờ đi, bước đã xong thu gọn thành một dòng (USER 03/10)
+const JOIN_STEPS = [
+  { short: "Chọn tên", title: "Bạn là ai?", todo: "Gõ tên hoặc mã sinh viên, rồi <b>chạm vào tên của bạn</b>." },
+  { short: "Chọn mức", title: "Chọn mức đóng góp", todo: "Chạm vào một mức, rồi bấm <b>Tiếp tục</b>." },
+  { short: "Chuyển khoản", title: "Chuyển khoản", todo: "Mở app ngân hàng, <b>quét mã QR</b> bên dưới (hoặc chép số tài khoản). Chuyển xong thì bấm nút ở cuối bước này." },
+  { short: "Gửi ảnh", title: "Gửi ảnh chụp chuyển khoản", todo: "Chụp màn hình chuyển khoản thành công, rồi gửi theo <b>một</b> trong hai cách dưới đây." },
+];
+
 function sheetJoin(body) {
   const tiers = DATA.tiers;
-  const state = { person: null, amount: tiers[0].amount };
+  const state = { person: null, amount: tiers[0].amount, step: 1 };
   const people = [...DATA.people].sort((a, b) => (a.status === "registered" ? -1 : 0) - (b.status === "registered" ? -1 : 0));
-  body.innerHTML = `
-    <div class="step">BƯỚC 1 · BẠN LÀ AI?</div>
-    <input class="search" id="q" placeholder="🔍 Gõ tên hoặc mã sinh viên…" autocomplete="off">
-    <div class="list" id="who"></div>
-    <div class="step">BƯỚC 2 · CHỌN MỨC</div>
-    <div class="chips" id="chips">${tiers.map((t) => `<button data-a="${t.amount}">${formatMillions(t.amount)}<small>${t.badge} ${e(t.name)}</small></button>`).join("")}<button data-a="other">Khác…<small>&nbsp;</small></button></div>
+  const stepBody = [
+    `<input class="search" id="q" placeholder="🔍 Gõ tên hoặc mã sinh viên…" autocomplete="off">
+    <div class="list" id="who"></div>`,
+    `<div class="chips" id="chips">${tiers.map((t) => `<button data-a="${t.amount}">${formatMillions(t.amount)}<small>${t.badge} ${e(t.name)}</small></button>`).join("")}<button data-a="other">Khác…<small>&nbsp;</small></button></div>
     <input class="other-amount" id="other" inputmode="numeric" placeholder="Nhập số tiền, ví dụ 1500000">
     <div class="unlock" id="unlock" hidden></div>
-    <div class="step">BƯỚC 3 · QUÉT MÃ ĐỂ CHUYỂN</div>
-    <div id="pay"><p class="note">Chọn tên của bạn ở bước 1 để hiện mã QR.</p></div>
-    <div class="step">BƯỚC 4 · GỬI ẢNH CHỤP CHUYỂN KHOẢN</div>
-    <p class="note" style="text-align:left;padding:0 16px 8px">Chọn <b>một</b> trong hai cách. Vài phút sau, ảnh của bạn trên trang sẽ đổi sang viền màu 🎉</p>
-    ${DATA.uploadUrl ? `
+    <button type="button" class="cta grad" id="to3">Tiếp tục →</button>`,
+    `<div id="pay"><p class="note">Chọn tên của bạn ở bước 1 để hiện mã QR.</p></div>
+    <button type="button" class="cta grad" id="to4">✅ Tôi đã chuyển khoản xong →</button>`,
+    `${DATA.uploadUrl ? `
     <textarea id="msg" class="search" rows="2" maxlength="300" placeholder="Lời nhắn cho cả lớp (không bắt buộc)"></textarea>
     <label class="cta grad" style="cursor:pointer">⬆️ Tải ảnh chụp lên đây<input type="file" id="file" accept="image/*" hidden></label>
     <p class="note" id="upl" aria-live="polite"></p>
     <div class="or">— hoặc —</div>` : ""}
     <button type="button" class="cta zalo" id="zalo-btn">📸 Gửi ảnh chụp vào nhóm Zalo</button>
-    <p class="note">Ảnh chụp chuyển khoản không bao giờ được đăng lên trang.</p>`;
+    <p class="note">Vài phút sau, ảnh của bạn trên trang sẽ đổi sang viền màu 🎉<br>Ảnh chụp chuyển khoản không bao giờ được đăng lên trang.</p>`,
+  ];
+  body.innerHTML = `<ol class="stepper">${JOIN_STEPS.map((s, i) => `<li><b>${i + 1}</b>${s.short}</li>`).join("")}</ol>` +
+    JOIN_STEPS.map((s, i) => `<section class="stp" data-step="${i + 1}">
+      <div class="stp-h"><span class="num">${i + 1}</span><div><small>BƯỚC ${i + 1}/${JOIN_STEPS.length}</small><b>${s.title}</b><em class="stp-sum"></em></div><span class="stp-edit">Sửa</span></div>
+      <p class="stp-d">👉 ${s.todo}</p>
+      <div class="stp-b">${stepBody[i]}</div>
+    </section>`).join("");
+
+  const summary = [() => state.person?.name, () => formatVnd(state.amount), () => "Đã chuyển khoản"];
+  const drawSteps = () => {
+    const cls = (n) => (n === state.step ? "cur" : n < state.step ? "done" : "todo");
+    body.querySelectorAll(".stp").forEach((el) => {
+      const n = Number(el.dataset.step);
+      el.className = `stp ${cls(n)}`;
+      el.querySelector(".num").textContent = n < state.step ? "✓" : n;
+      el.querySelector(".stp-sum").textContent = n < state.step ? summary[n - 1]?.() ?? "" : "";
+    });
+    body.querySelectorAll(".stepper li").forEach((li, i) => (li.className = cls(i + 1)));
+  };
+  const go = (n) => {
+    state.step = n;
+    drawSteps();
+    body.querySelector(`.stp[data-step="${n}"]`).scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  // Chạm vào bước khác để chuyển tới đó; phải chọn tên (và có số tiền) trước khi đi tiếp
+  // (bắt ở pha capture: xét trước khi nút bên trong bước đổi state.step, và chặn nút của bước đang mờ)
+  body.querySelectorAll(".stp").forEach((el) => el.addEventListener("click", (ev) => {
+    const n = Number(el.dataset.step);
+    if (n === state.step) return;
+    ev.stopPropagation();
+    if ((n === 1 || state.person) && (n < 3 || state.amount >= 1000)) go(n);
+  }, true));
+  body.querySelector("#to3").onclick = () => { if (state.amount >= 1000) go(3); else body.querySelector("#other").focus(); };
+  body.querySelector("#to4").onclick = () => go(4);
 
   const drawWho = (q = "") => {
     const nq = transferContent("", q).trim().toLowerCase();
@@ -202,7 +244,7 @@ function sheetJoin(body) {
       .filter((p) => !nq || transferContent("", `${p.name} ${p.mssv ?? ""}`).toLowerCase().includes(nq))
       .map((p) => `<div class="who ${state.person?.key === p.key ? "sel" : ""}" data-k="${e(p.key)}">${ringed(p)}<div>${e(p.name)}${badgeHtml(p)}<small>${p.mssv ? `🎓 ${e(p.mssv)}` : ""}</small>${noteHtml(p)}</div>${state.person?.key === p.key ? '<span class="tick">✓</span>' : ""}</div>`)
       .join("");
-    body.querySelectorAll(".who").forEach((el) => (el.onclick = () => { state.person = people.find((p) => p.key === el.dataset.k); drawWho(body.querySelector("#q").value); drawPay(); }));
+    body.querySelectorAll(".who").forEach((el) => (el.onclick = () => { state.person = people.find((p) => p.key === el.dataset.k); drawWho(body.querySelector("#q").value); drawPay(); go(2); }));
   };
   const drawPay = () => {
     body.querySelectorAll("#chips button").forEach((b) => b.classList.toggle("on", String(state.amount) === b.dataset.a || (b.dataset.a === "other" && !tiers.some((t) => t.amount === state.amount))));
@@ -227,7 +269,7 @@ function sheetJoin(body) {
     const file = fileInput.files[0];
     fileInput.value = "";
     if (!file) return;
-    if (!state.person) { status.textContent = "⚠️ Hãy chọn tên của bạn ở bước 1 trước."; return; }
+    if (!state.person) { go(1); return; }
     if (!file.type.startsWith("image/")) { status.textContent = "⚠️ Chỉ nhận file ảnh."; return; }
     status.textContent = "⏳ Đang tải lên…";
     try {
@@ -242,7 +284,7 @@ function sheetJoin(body) {
     }
   };
   body.querySelector("#zalo-btn").onclick = () => {
-    if (!state.person) { body.querySelector("#q").focus(); body.querySelector("#q").placeholder = "⚠️ Chọn tên của bạn trước nhé…"; return; }
+    if (!state.person) { go(1); return; }
     celebrate(thankYou(state.person, state.amount, "zalo"), DATA.zaloGroupUrl ? { href: DATA.zaloGroupUrl, label: "📸 Mở nhóm Zalo để gửi ảnh" } : null);
   };
   body.querySelector("#q").oninput = (ev) => drawWho(ev.target.value);
@@ -256,6 +298,7 @@ function sheetJoin(body) {
   body.querySelector("#other").oninput = (ev) => { state.amount = Number(ev.target.value.replace(/\D/g, "")) || 0; drawPay(); };
   drawWho();
   drawPay();
+  drawSteps();
 }
 
 // Thu nhỏ ảnh (tối đa 1600px, JPEG) trước khi gửi để nhanh trên 4G; ảnh chụp màn hình ngân hàng vẫn đọc rõ.

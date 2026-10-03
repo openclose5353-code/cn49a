@@ -98,6 +98,13 @@ export function milestoneTrack({ paid, registered, classSize, milestones }) {
   };
 }
 
+// Thẻ "Đã góp": chưa đạt mức tối thiểu thì đích là mức tối thiểu; đạt rồi thì đích là mức đầy đủ (USER 03/10).
+export function goalProgress({ raised, minimum, full }) {
+  const reached = raised >= minimum;
+  const target = reached ? full : minimum;
+  return { reached, target, pct: Math.min(100, (100 * raised) / target), markPct: reached ? (100 * minimum) / full : null };
+}
+
 // Thanh quỹ góp thêm: các nấc cộng dồn trên thang 0 → tổng mục tiêu, trạng thái từng nấc, câu kế tiếp.
 export function ladderTrack(ladder) {
   const STATUS = { done: "Đã mở", active: "Đang góp", locked: "Chưa tới" };
