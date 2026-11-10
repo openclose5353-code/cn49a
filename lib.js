@@ -136,11 +136,11 @@ export function thankYou(person, amount, via) {
 // Lưới dùng ảnh nhỏ photos/sm/…; bấm vào mở ảnh lớn photos/…
 export const fullSrc = (src) => String(src).replace("photos/sm/", "photos/");
 
-// Thứ tự ảnh (USER 27/09): album riêng → mới nhất trước (trừ album chrono).
-// "Tất cả" → ảnh tải lên trong 24 giờ qua ở đầu (isNew), phần còn lại xáo theo ngày (giờ VN):
-// cả lớp thấy cùng một thứ tự trong ngày, sang ngày mới đổi — trang luôn có vẻ mới.
+// Thứ tự ảnh (USER 10/11): mọi album (cả "Tất cả" và 🎉 Ngày hội) → ảnh tải lên trong 24 giờ qua ở đầu (isNew),
+// phần còn lại xáo theo giờ (giờ VN): trong một giờ thứ tự đứng yên (Xem thêm, vuốt ảnh không lộn), sang giờ mới đổi —
+// mỗi lần vào web lại thấy ảnh khác ở đầu album.
 export const NEW_MS = 864e5;
-const vnDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
+const vnHour = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 13);
 
 function seededRandom(seed) {
   let h = 1779033703 ^ seed.length;
@@ -152,12 +152,11 @@ function seededRandom(seed) {
   };
 }
 
-// chrono (album 🎉 Ngày hội 15 năm, USER 10/11): theo thứ tự chụp, ảnh đầu ngày trước.
-export function albumPhotos(gallery, key, now = Date.now(), chrono = false) {
-  if (key !== "all") return gallery.filter((g) => g.album === key).sort((a, b) => (chrono ? a.ts - b.ts : b.ts - a.ts));
-  const fresh = gallery.filter((g) => now - g.ts < NEW_MS).sort((a, b) => b.ts - a.ts).map((g) => ({ ...g, isNew: true }));
-  const rest = gallery.filter((g) => now - g.ts >= NEW_MS).sort((a, b) => String(a.src).localeCompare(String(b.src)));
-  const rnd = seededRandom(vnDay(now));
+export function albumPhotos(gallery, key, now = Date.now()) {
+  const own = key === "all" ? gallery : gallery.filter((g) => g.album === key);
+  const fresh = own.filter((g) => now - g.ts < NEW_MS).sort((a, b) => b.ts - a.ts).map((g) => ({ ...g, isNew: true }));
+  const rest = own.filter((g) => now - g.ts >= NEW_MS).sort((a, b) => String(a.src).localeCompare(String(b.src)));
+  const rnd = seededRandom(`${vnHour(now)}|${key}`);
   for (let i = rest.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
     [rest[i], rest[j]] = [rest[j], rest[i]];

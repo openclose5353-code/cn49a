@@ -1,4 +1,4 @@
-import { formatVnd, escapeHtml as e, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20261110c";
+import { formatVnd, escapeHtml as e, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20261110d";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -52,14 +52,16 @@ const PAGE = 60;
 const REUNION = "reunion15";
 const sortedAlbums = () => [...(DATA.albums ?? [])].sort((a, b) => (b.key === REUNION) - (a.key === REUNION));
 const defaultAlbum = () => (DATA.albums ?? []).find((a) => a.key === REUNION)?.count ? REUNION : "all";
+// Thứ tự album đổi mỗi giờ; giữ theo lúc mở trang để "Xem thêm" không lặp hay sót ảnh khi vừa sang giờ mới
+const OPENED = Date.now();
 let galleryItems = []; // cả album đang chọn — trình xem ảnh vuốt được hết, không chỉ 60 ảnh đang hiện
 function renderGallery(key = defaultAlbum(), shown = PAGE) {
   const albums = sortedAlbums();
   const title = new Map(albums.map((a) => [a.key, `${a.emoji} ${a.title}`]));
   const cur = albums.find((a) => a.key === key);
-  const imgs = key === "video" ? [] : albumPhotos(DATA.gallery, key, Date.now(), cur?.chrono);
+  const imgs = key === "video" ? [] : albumPhotos(DATA.gallery, key, OPENED);
   const newCount = DATA.gallery.filter((g) => Date.now() - g.ts < NEW_MS).length;
-  const allCover = albumPhotos(DATA.gallery, "all")[0]?.src;
+  const allCover = albumPhotos(DATA.gallery, "all", OPENED)[0]?.src;
   const circle = (k, cover, emoji, label, count, unit = "ảnh") => `<button data-album="${k}" class="${key === k ? "on" : ""}${count ? "" : " empty"}">
       <span class="c">${cover ? `<img src="${e(cover)}" alt="" loading="lazy">` : `<i>${emoji}</i>`}</span>
       <b>${e(label)}</b><small>${count ? `${count} ${unit}` : "sắp có"}</small></button>`;
@@ -68,7 +70,7 @@ function renderGallery(key = defaultAlbum(), shown = PAGE) {
   const nVideo = clips.length + yt.length;
   galleryItems = imgs.map((g) => ({ src: g.src, cap: [title.get(g.album), g.by].filter(Boolean).join(" · "), dims: [g.w, g.h] }));
   $("gallery").innerHTML = `<h2 class="sec-t">📸 Album kỷ niệm <small>${DATA.gallery.length} ảnh</small>${newCount ? `<span class="new-n">🆕 ${newCount} ảnh mới</span>` : ""}</h2>
-    <div class="alb">${circle("all", allCover, "▦", "Tất cả", DATA.gallery.length)}${nVideo ? circle("video", clips[0]?.poster, "🎬", "Video", nVideo, "clip") : ""}${albums.map((a) => circle(a.key, a.cover, a.emoji, a.title, a.count)).join("")}</div>
+    <div class="alb">${circle("all", allCover, "▦", "Tất cả", DATA.gallery.length)}${nVideo ? circle("video", clips[0]?.poster, "🎬", "Video", nVideo, "clip") : ""}${albums.map((a) => circle(a.key, albumPhotos(DATA.gallery, a.key, OPENED)[0]?.src ?? a.cover, a.emoji, a.title, a.count)).join("")}</div>
     ${cur && !cur.count ? `<p class="note">${cur.key === "reunion15" ? "Ảnh buổi họp mặt 01/11 đang được cập nhật 🎉" : "Chưa có ảnh"}</p>` : ""}
     ${key === "video" ? `<div class="clips">${videoList(clips, yt).map((c) => c.youtubeId
       ? `<figure><div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(c.youtubeId)}" loading="lazy" allowfullscreen title="${e(c.title)}"></iframe></div><figcaption>${e(c.title)}</figcaption></figure>`
