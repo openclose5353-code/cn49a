@@ -1,4 +1,4 @@
-import { formatVnd, escapeHtml as e, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20261110a";
+import { formatVnd, escapeHtml as e, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20261110b";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -11,7 +11,7 @@ const avatar = (p) =>
 const photo = (src, cap, [w, h] = []) =>
   `<img src="${e(src)}" data-full="${e(fullSrc(src))}" data-cap="${e(cap ?? "")}"${w ? ` data-w="${w}" data-h="${h}"` : ""} alt="" loading="lazy">`;
 const ringed = (p) => `<span class="r ${p.status}">${avatar(p)}</span>`;
-const hasVideo = (v) => v.youtubeId || v.drive;
+const hasVideo = (v) => v.youtubeId || v.src || v.drive;
 
 // Sau buổi họp mặt, trang chủ là nơi xem lại clip và ảnh kỷ niệm (USER 10/11)
 function renderHero() {
@@ -39,6 +39,8 @@ function renderReunionVideos() {
   $("reunion-videos").innerHTML = `<h2 class="sec-t">🎬 Clip ngày hội 15 năm</h2>
     <div class="clips">${vids.map((v) => `<figure>${v.youtubeId
       ? `<div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${e(v.youtubeId)}" loading="lazy" allowfullscreen title="${e(v.title)}"></iframe></div>`
+      : v.src
+      ? `<video src="${e(v.src)}" poster="${e(v.poster ?? "")}" controls playsinline preload="none"></video>`
       : v.drive
       ? `<div class="video"><iframe src="https://drive.google.com/file/d/${e(v.drive)}/preview" loading="lazy" allow="autoplay; fullscreen" allowfullscreen title="${e(v.title)}"></iframe></div>`
       : `<div class="video soon"><span>🎬<br>Clip đang được cập nhật</span></div>`}
