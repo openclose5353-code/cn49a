@@ -1,4 +1,4 @@
-import { formatVnd, escapeHtml as e, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20261110b";
+import { formatVnd, escapeHtml as e, fullSrc, albumPhotos, NEW_MS, videoList } from "./lib.js?v=20261110c";
 
 const $ = (id) => document.getElementById(id);
 let DATA;
@@ -83,15 +83,17 @@ function renderGallery(key = defaultAlbum(), shown = PAGE) {
 }
 
 // ---------- Màn hình phụ ----------
-// Thu – chi (USER 10/11): ① thu từ những ai, bao nhiêu → ② chi từng khoản → ③ còn lại.
+// Thu – chi (USER 10/11): ① thu từ những ai, bao nhiêu → ② chi từng khoản → ③ còn thừa (hoặc thiếu).
 // Bạn góp đúng 1 triệu chỉ đếm số người; bạn góp nhiều hơn có tên + số tiền.
 function sheetLedger(body) {
   const L = DATA.ledger;
   // Mọi khoản cùng một ngày → ghi ngày một lần ở tiêu đề
   const oneDay = L.expenses.length && L.expenses.every((x) => x.date === L.expenses[0].date) ? L.expenses[0].date : null;
+  // Thu > chi → "Còn thừa"; chi > thu → "Còn thiếu" (USER 10/11: "Còn lại" dễ đọc nhầm)
+  const left = L.balance >= 0 ? "Còn thừa" : "Còn thiếu";
   const row = (label, sub, amount, cls = "") => `<div class="row ${cls}"><div>${label}${sub ? `<small>${sub}</small>` : ""}</div><b>${amount}</b></div>`;
   body.innerHTML = `
-    <div class="sum"><div style="background:#ecfdf3;color:#067647">Tổng thu<b>${formatVnd(L.income)}</b></div><div style="background:#fef3f2;color:#b42318">Đã chi<b>${formatVnd(L.expenseTotal)}</b></div><div style="background:#f4f3ff;color:#5925dc">Còn lại<b>${formatVnd(L.balance)}</b></div></div>
+    <div class="sum"><div style="background:#ecfdf3;color:#067647">Tổng thu<b>${formatVnd(L.income)}</b></div><div style="background:#fef3f2;color:#b42318">Đã chi<b>${formatVnd(L.expenseTotal)}</b></div><div style="background:#f4f3ff;color:#5925dc">${left}<b>${formatVnd(Math.abs(L.balance))}</b></div></div>
     <div class="sec">① THU · ${L.contributors} BẠN ĐÓNG GÓP</div>
     ${row(`${L.base.count} bạn × ${formatVnd(L.base.amount)}`, "mỗi bạn 1 triệu", formatVnd(L.base.count * L.base.amount))}
     ${L.bigger.length ? `<div class="sub-sec">${L.bigger.length} bạn góp nhiều hơn</div>${L.bigger.map((x) => row(e(x.name), "", formatVnd(x.amount))).join("")}` : ""}
@@ -99,8 +101,8 @@ function sheetLedger(body) {
     <div class="sec">② CHI · ${L.expenses.length} KHOẢN${oneDay ? ` · NGÀY ${e(oneDay)}` : ""}</div>
     ${L.expenses.length ? L.expenses.map((x) => row(e(x.label), oneDay ? "" : e(x.date), `−${formatVnd(x.amount)}`)).join("") : `<p class="note" style="padding-top:10px">${e(L.note)}</p>`}
     ${row("Tổng chi", "", `−${formatVnd(L.expenseTotal)}`, "total")}
-    <div class="sec">③ CÒN LẠI</div>
-    ${row("Còn lại", `${formatVnd(L.income)} − ${formatVnd(L.expenseTotal)}`, formatVnd(L.balance), "total")}`;
+    <div class="sec">③ ${left.toUpperCase()}</div>
+    ${row(left, `${formatVnd(L.income)} − ${formatVnd(L.expenseTotal)}`, formatVnd(Math.abs(L.balance)), "total")}`;
 }
 
 function sheetClass(body) {
