@@ -136,7 +136,7 @@ export function thankYou(person, amount, via) {
 // Lưới dùng ảnh nhỏ photos/sm/…; bấm vào mở ảnh lớn photos/…
 export const fullSrc = (src) => String(src).replace("photos/sm/", "photos/");
 
-// Thứ tự ảnh (USER 27/09): album riêng → mới nhất trước.
+// Thứ tự ảnh (USER 27/09): album riêng → mới nhất trước (trừ album chrono).
 // "Tất cả" → ảnh tải lên trong 24 giờ qua ở đầu (isNew), phần còn lại xáo theo ngày (giờ VN):
 // cả lớp thấy cùng một thứ tự trong ngày, sang ngày mới đổi — trang luôn có vẻ mới.
 export const NEW_MS = 864e5;
@@ -152,8 +152,9 @@ function seededRandom(seed) {
   };
 }
 
-export function albumPhotos(gallery, key, now = Date.now()) {
-  if (key !== "all") return gallery.filter((g) => g.album === key).sort((a, b) => b.ts - a.ts);
+// chrono (album 🎉 Ngày hội 15 năm, USER 10/11): theo thứ tự chụp, ảnh đầu ngày trước.
+export function albumPhotos(gallery, key, now = Date.now(), chrono = false) {
+  if (key !== "all") return gallery.filter((g) => g.album === key).sort((a, b) => (chrono ? a.ts - b.ts : b.ts - a.ts));
   const fresh = gallery.filter((g) => now - g.ts < NEW_MS).sort((a, b) => b.ts - a.ts).map((g) => ({ ...g, isNew: true }));
   const rest = gallery.filter((g) => now - g.ts >= NEW_MS).sort((a, b) => String(a.src).localeCompare(String(b.src)));
   const rnd = seededRandom(vnDay(now));

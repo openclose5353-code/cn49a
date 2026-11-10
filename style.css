@@ -294,3 +294,15 @@ button.cta { width: calc(100% - 32px); border: 0; font-family: var(--font); curs
 .stp.done .stp-edit { display: block; }
 .stp.todo { opacity: .42; filter: blur(1.2px) grayscale(.7); }
 .stp.todo .stp-b { pointer-events: none; max-height: 96px; overflow: hidden; }
+/* Trang chủ sau buổi họp mặt (USER 10/11): lời cảm ơn, clip ngày hội, album */
+.hero { padding: 16px 14px 14px; }
+.hero .hero-t { font-size: 24px; font-weight: 900; line-height: 1.2; margin: 6px 0 8px; }
+.rv .clips { padding-top: 10px; }
+.rv figcaption { font-size: 13px; line-height: 1.45; }
+.rv figcaption b { color: #111; font-size: 14px; }
+.video.soon { background: linear-gradient(135deg, #fdf2f8, #f5f3ff); }
+.video.soon span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); line-height: 1.8; }
+/* Thu – chi */
+.sub-sec { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 12px 16px 2px; }
+.row.total { background: #fafafa; font-weight: 800; }
+.row.total b { font-size: 15px; }
